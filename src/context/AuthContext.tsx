@@ -8,6 +8,7 @@ import {
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  updateProfile,
   signOut,
   onAuthStateChanged,
   type User as FirebaseUser,
@@ -47,8 +48,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signInWithEmailAndPassword(auth, email, pass);
   };
 
-  const register = async (email: string, pass: string) => {
-    await createUserWithEmailAndPassword(auth, email, pass);
+  const register = async (email: string, pass: string, name: string) => {
+    const cred = await createUserWithEmailAndPassword(auth, email, pass);
+    await updateProfile(cred.user, { displayName: name });
+    // Por seguridad, cerramos sesión de inmediato para obligar al usuario a autenticarse en el login
+    await signOut(auth);
+    setFirebaseUser(null);
+    setUser(null);
   };
 
   const logout = async () => {
