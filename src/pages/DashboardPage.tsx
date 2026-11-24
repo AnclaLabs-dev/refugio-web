@@ -1,43 +1,33 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext";
 import { AppLayout } from "../components/layout/AppLayout";
+import { Button } from "../components/ui/Button";
 import { QuotesPanel } from "../components/dashboard/QuotesPanel";
 import { quotesMock } from "../mocks/quotesMock";
+import {
+  getWallet,
+  type WalletBalance,
+} from "../services/wallet";
 
-const mockBalances = [
-  {
-    currency: "ARS",
-    name: "Peso argentino",
-    amount: 250000,
-    decimals: 2,
-  },
-  {
-    currency: "USD",
-    name: "Dólar estadounidense",
-    amount: 500,
-    decimals: 2,
-  },
-  {
-    currency: "USDT",
-    name: "Tether",
-    amount: 200,
-    decimals: 2,
-  },
-  {
-    currency: "BTC",
-    name: "Bitcoin",
-    amount: 0.005,
-    decimals: 8,
-  },
-] as const;
+type WalletState =
+  | { status: "loading" }
+  | { status: "success"; balances: WalletBalance[] }
+  | { status: "error"; message: string };
 
-function formatBalance(amount: number, decimals: number) {
-  return new Intl.NumberFormat("es-AR", {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  }).format(amount);
+// Agrupa los dígitos sin convertir el importe a Number.
+function formatBalance(amount: string): string {
+  const match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(amount);
+
+  if (!match) return amount;
+
+  const [, sign, integer, fraction] = match;
+  const grouped = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+  return `${sign}${grouped}${
+    fraction !== undefined ? `,${fraction}` : ""
+  }`;
 }
 
 function WalletIcon() {
@@ -62,13 +52,50 @@ function WalletIcon() {
 }
 
 export default function DashboardPage() {
-  const { user, logout } = useAuth();
+  const { user, firebaseUser, logout } = useAuth();
   const navigate = useNavigate();
 
   const [loggingOut, setLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState("");
+  const [walletState, setWalletState] = useState<WalletState>({
+    status: "loading",
+  });
+  const [attempt, setAttempt] = useState(0);
 
   const userName = user?.displayName || user?.email || "Usuario";
+
+  useEffect(() => {
+    if (!firebaseUser) return;
+
+    const controller = new AbortController();
+
+    async function loadWallet() {
+      setWalletState({ status: "loading" });
+
+      try {
+        const data = await getWallet(controller.signal);
+
+        if (!controller.signal.aborted) {
+          setWalletState({
+            status: "success",
+            balances: data.wallet.balances,
+          });
+        }
+      } catch {
+        if (!controller.signal.aborted) {
+          setWalletState({
+            status: "error",
+            message:
+              "No pudimos cargar tus balances. Intentá nuevamente.",
+          });
+        }
+      }
+    }
+
+    void loadWallet();
+
+    return () => controller.abort();
+  }, [firebaseUser, attempt]);
 
   const handleLogout = async () => {
     if (loggingOut) return;
@@ -81,7 +108,7 @@ export default function DashboardPage() {
       navigate("/login", { replace: true });
     } catch {
       setLogoutError(
-        "No pudimos cerrar sesión. Intentá nuevamente."
+        "No pudimos cerrar sesión. Intentá nuevamente.",
       );
     } finally {
       setLoggingOut(false);
@@ -116,7 +143,6 @@ export default function DashboardPage() {
           aria-labelledby="wallet-summary-title"
           className="relative mb-4 overflow-hidden rounded-xl bg-[#95877D] px-4 py-5 text-white shadow-sm sm:px-5"
         >
-          {/* Arco de Refugio como marca de agua */}
           <svg
             viewBox="0 0 100 120"
             fill="none"
@@ -148,46 +174,77 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <section aria-labelledby="balances-title">
+        <section
+          aria-labelledby="balances-title"
+          aria-busy={walletState.status === "loading"}
+        >
           <div className="mb-2 flex items-center justify-between gap-2">
             <h2 id="balances-title" className="text-sm font-bold">
               Tus balances
             </h2>
 
             <span className="text-[11px] font-medium text-muted">
-              Datos de ejemplo
+              Cuenta de simulación
             </span>
           </div>
 
-          <div className="grid min-w-0 grid-cols-2 gap-2 md:grid-cols-4">
-            {mockBalances.map((balance) => (
-              <div
-                key={balance.currency}
-                role="group"
-                aria-label={balance.name}
-                className="min-w-0 rounded-xl border border-line bg-surface/80 px-3 py-3"
+          {walletState.status === "loading" && (
+            <p
+              role="status"
+              className="rounded-xl border border-line bg-surface p-4 text-sm text-muted"
+            >
+              Cargando tus balances…
+            </p>
+          )}
+
+          {walletState.status === "error" && (
+            <div className="rounded-xl border border-line bg-surface p-4">
+              <p role="alert" className="mb-3 text-sm text-danger">
+                {walletState.message}
+              </p>
+
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setAttempt((current) => current + 1);
+                }}
               >
-                <div className="mb-1.5 flex items-center gap-1.5">
-                  <WalletIcon />
+                Reintentar
+              </Button>
+            </div>
+          )}
 
-                  <h3 className="text-xs font-bold">
-                    {balance.currency}
-                  </h3>
-                </div>
+          {walletState.status === "success" && (
+            walletState.balances.length === 0 ? (
+              <p className="rounded-xl border border-line bg-surface p-4 text-sm text-muted">
+                Tu billetera todavía no tiene balances disponibles.
+              </p>
+            ) : (
+              <div className="grid min-w-0 grid-cols-2 gap-2 md:grid-cols-4">
+                {walletState.balances.map((balance) => (
+                  <div
+                    key={balance.currency_code}
+                    role="group"
+                    aria-label={balance.name}
+                    className="min-w-0 rounded-xl border border-line bg-surface/80 px-3 py-3"
+                  >
+                    <div className="mb-1.5 flex items-center gap-1.5">
+                      <WalletIcon />
 
-                <p className="wrap-anywhere text-sm font-bold tracking-tight text-ink tabular-nums">
-                  <span className="sr-only">
-                    Saldo ficticio:
-                  </span>
+                      <h3 className="text-xs font-bold">
+                        {balance.currency_code}
+                      </h3>
+                    </div>
 
-                  {formatBalance(
-                    balance.amount,
-                    balance.decimals
-                  )}
-                </p>
+                    <p className="wrap-anywhere text-sm font-bold tracking-tight text-ink tabular-nums">
+                      <span className="sr-only">Saldo: </span>
+                      {formatBalance(balance.amount)}
+                    </p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )
+          )}
         </section>
 
         <QuotesPanel quotes={quotesMock} />
