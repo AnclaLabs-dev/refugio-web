@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 
-import { Card } from "../ui/Card";
 import type { Quote } from "../../mocks/quotesMock";
 
 interface QuotesPanelProps {
@@ -23,18 +22,16 @@ function formatAge(updatedAt: string, now: number): string {
 
   const minutes = Math.floor((now - timestamp) / 60_000);
 
-  if (minutes < 1) return "Hace menos de un minuto";
-  if (minutes === 1) return "Hace 1 minuto";
-  if (minutes < 60) return `Hace ${minutes} minutos`;
+  if (minutes < 1) return "Hace menos de 1 min";
+  if (minutes < 60) return `Hace ${minutes} min`;
 
   const hours = Math.floor(minutes / 60);
 
-  if (hours === 1) return "Hace 1 hora";
-  if (hours < 24) return `Hace ${hours} horas`;
+  if (hours < 24) return `Hace ${hours} h`;
 
   const days = Math.floor(hours / 24);
 
-  return days === 1 ? "Hace 1 día" : `Hace ${days} días`;
+  return `Hace ${days} ${days === 1 ? "día" : "días"}`;
 }
 
 export function QuotesPanel({ quotes }: QuotesPanelProps) {
@@ -51,119 +48,83 @@ export function QuotesPanel({ quotes }: QuotesPanelProps) {
   return (
     <section
       aria-labelledby="quotes-title"
-      className="mt-10 min-w-0"
+      className="mt-5 min-w-0 rounded-xl border border-line bg-surface/80 p-3 sm:p-4"
     >
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="mb-2 text-sm font-semibold text-brand">
-            Referencias del mercado
-          </p>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h2 id="quotes-title" className="text-base font-bold">
+          Cotizaciones de referencia
+        </h2>
 
-          <h2 id="quotes-title">
-            Panel de cotizaciones
-          </h2>
-
-          <p className="mt-2 max-w-2xl text-sm text-muted">
-            Valores expresados en pesos argentinos por
-            dólar estadounidense.
-          </p>
-        </div>
-
-        <span className="rounded-full border border-brand/20 bg-brand-soft px-3 py-2 text-xs font-semibold text-brand">
-          Cotizaciones de ejemplo
+        <span className="rounded-md bg-brand-soft px-2 py-1 text-[10px] font-semibold text-brand">
+          Ejemplo · ARS por USD
         </span>
       </div>
 
-      <p className="mb-4 max-w-3xl text-sm text-muted">
-        Compra y venta se muestran desde la perspectiva del
-        proveedor: compra es lo que paga por tus dólares;
-        venta es lo que cobra al vendértelos.
+      <p className="sr-only">
+        Compra es lo que el proveedor paga por tus dólares.
+        Venta es lo que cobra al vendértelos.
       </p>
 
       {quotes.length === 0 ? (
-        <Card>
-          <p className="text-sm text-muted">
-            No hay cotizaciones para mostrar.
-          </p>
-        </Card>
+        <p className="py-3 text-sm text-muted">
+          No hay cotizaciones para mostrar.
+        </p>
       ) : (
-        <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
+        <ul className="divide-y divide-line">
           {quotes.map((quote) => (
-            <Card
+            <li
               key={quote.id}
-              className="relative overflow-hidden shadow-sm transition-shadow hover:shadow-md motion-reduce:transition-none"
+              className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] items-start gap-x-2 gap-y-2 py-3 first:pt-1 last:pb-1 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.4fr)]"
             >
-              <div
-                aria-hidden="true"
-                className="absolute inset-x-0 top-0 h-1 bg-brand/60"
-              />
+              <h3 className="min-w-0 self-center text-xs font-bold">
+                {quote.name}
+              </h3>
 
-              <div className="mb-5 flex items-center justify-between gap-3">
-                <h3 className="text-lg font-bold">
-                  {quote.name}
-                </h3>
+              <dl className="min-w-0">
+                <dt className="mb-1 text-[10px] text-muted">
+                  Compra
+                </dt>
 
-                <span
-                  aria-hidden="true"
-                  className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-brand/10 bg-brand-soft text-lg font-bold text-brand"
-                >
-                  $
-                </span>
-              </div>
-
-              <dl className="grid grid-cols-2 gap-3">
-                <div className="min-w-0 rounded-xl border border-line bg-page p-3">
-                  <dt className="text-xs font-semibold text-muted">
-                    Compra
-                  </dt>
-
-                  <dd className="mt-2 wrap-break-word text-lg font-extrabold tracking-tight text-ink tabular-nums">
-                    {priceFormatter.format(quote.buy)}
-                  </dd>
-                </div>
-
-                <div className="min-w-0 rounded-xl border border-brand/15 bg-brand-soft p-3">
-                  <dt className="text-xs font-semibold text-brand">
-                    Venta
-                  </dt>
-
-                  <dd className="mt-2 wrap-break-word text-lg font-extrabold tracking-tight text-ink tabular-nums">
-                    {priceFormatter.format(quote.sell)}
-                  </dd>
-                </div>
+                <dd className="wrap-anywhere text-xs font-semibold tabular-nums">
+                  {priceFormatter.format(quote.buy)}
+                </dd>
               </dl>
 
-              <dl className="mt-5 space-y-2 border-t border-line pt-4 text-xs">
-                <div className="flex flex-wrap justify-between gap-x-3 gap-y-1">
-                  <dt className="text-muted">Fuente simulada</dt>
-                  <dd className="font-medium text-ink">
+              <dl className="min-w-0">
+                <dt className="mb-1 text-[10px] text-muted">
+                  Venta
+                </dt>
+
+                <dd className="wrap-anywhere text-xs font-semibold text-brand tabular-nums">
+                  {priceFormatter.format(quote.sell)}
+                </dd>
+              </dl>
+
+              <dl className="col-span-3 flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[10px] text-muted sm:col-span-1 sm:block">
+                <div className="min-w-0">
+                  <dt className="sr-only">Fuente simulada</dt>
+                  <dd className="wrap-break-word">
                     {quote.source}
                   </dd>
                 </div>
 
-                <div className="flex flex-wrap justify-between gap-x-3 gap-y-1">
-                  <dt className="text-muted">Antigüedad</dt>
-                  <dd className="font-medium text-ink">
-                    <time
-                      dateTime={quote.updatedAt}
-                      title={new Date(
-                        quote.updatedAt
-                      ).toLocaleString("es-AR")}
-                    >
+                <div className="sm:mt-1">
+                  <dt className="sr-only">Antigüedad</dt>
+                  <dd>
+                    <time dateTime={quote.updatedAt}>
                       {formatAge(quote.updatedAt, now)}
                     </time>
                   </dd>
                 </div>
               </dl>
-            </Card>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
 
-      <p className="mt-4 max-w-3xl text-xs leading-relaxed text-muted">
-        Maqueta con precios y fechas ficticios. La antigüedad
-        avanza con el tiempo, pero las cotizaciones no se
-        actualizan ni se consultan a un proveedor.
+      <p className="mt-3 border-t border-line pt-2 text-[10px] leading-relaxed text-muted">
+        Precios y fechas ficticios. Compra y venta según el
+        proveedor. Sin actualización de precios en vivo.
       </p>
     </section>
   );
