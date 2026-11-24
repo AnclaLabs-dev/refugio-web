@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext";
 import { AppLayout } from "../components/layout/AppLayout";
-import { Card } from "../components/ui/Card";
 import { QuotesPanel } from "../components/dashboard/QuotesPanel";
 import { quotesMock } from "../mocks/quotesMock";
 
@@ -39,6 +38,27 @@ function formatBalance(amount: number, decimals: number) {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   }).format(amount);
+}
+
+function WalletIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="17"
+      height="17"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="shrink-0 text-brand"
+    >
+      <path d="M20 8V5a2 2 0 0 0-2-2H6a3 3 0 0 0 0 6h14v11H6a3 3 0 0 1-3-3V6" />
+      <path d="M20 12h-5v5h5" />
+      <path d="M17 14.5h.01" />
+    </svg>
+  );
 }
 
 export default function DashboardPage() {
@@ -77,111 +97,97 @@ export default function DashboardPage() {
       loggingOut={loggingOut}
       logoutError={logoutError}
     >
-      <div className="relative isolate min-w-0">
-        {/* Halos decorativos detrás del contenido */}
+      <div className="relative isolate mx-auto min-w-0 max-w-5xl">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 -z-10 overflow-hidden rounded-3xl"
         >
-          <div className="absolute -right-16 -top-12 size-72 rounded-full bg-brand/15 blur-3xl sm:size-96" />
-          <div className="absolute -left-24 top-80 size-80 rounded-full bg-taupe/20 blur-3xl" />
+          <div className="absolute -right-16 top-0 size-64 rounded-full bg-taupe/15 blur-3xl" />
+          <div className="absolute -left-20 top-72 size-64 rounded-full bg-brand/5 blur-3xl" />
         </div>
 
-        <header className="relative mb-8 overflow-hidden rounded-3xl border border-brand/15 bg-surface/80 p-5 shadow-sm backdrop-blur-md sm:p-8">
-          <div
-            aria-hidden="true"
-            className="absolute inset-y-6 left-0 w-1 rounded-r-full bg-brand"
-          />
-
-          <p className="mb-3 inline-flex items-center gap-2 text-sm font-semibold text-brand">
-            <span
-              aria-hidden="true"
-              className="size-2 rounded-full bg-brand"
-            />
-            Tu billetera
-          </p>
-
-          <h1 className="mb-3">Tu dinero, con claridad.</h1>
-
-          <p className="max-w-2xl text-base text-muted">
-            Consultá tus balances por moneda y explorá las
-            cotizaciones desde un solo lugar.
-          </p>
-
-          <div className="mt-6 flex flex-wrap gap-2">
-            <span className="rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-medium text-muted">
-              4 monedas
-            </span>
-
-            <span className="rounded-full border border-brand/15 bg-brand-soft px-3 py-1.5 text-xs font-semibold text-brand">
-              Entorno de simulación
-            </span>
-          </div>
+        <header className="mb-4">
+          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+            Tu dinero, con claridad.
+          </h1>
         </header>
 
-        <section aria-labelledby="balances-title">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h2 id="balances-title">Tus balances</h2>
+        <section
+          aria-labelledby="wallet-summary-title"
+          className="relative mb-4 overflow-hidden rounded-xl bg-[#95877D] px-4 py-5 text-white shadow-sm sm:px-5"
+        >
+          {/* Arco de Refugio como marca de agua */}
+          <svg
+            viewBox="0 0 100 120"
+            fill="none"
+            aria-hidden="true"
+            className="pointer-events-none absolute right-3 -bottom-5 h-32 w-28 text-[#CFC3B8]/65 sm:right-5"
+          >
+            <path
+              d="M16 120V52a34 34 0 0 1 68 0v68"
+              stroke="currentColor"
+              strokeWidth="16"
+            />
+          </svg>
 
-            <span className="rounded-full border border-brand/20 bg-brand-soft px-3 py-2 text-xs font-semibold text-brand">
+          <div className="relative max-w-[75%]">
+            <p className="mb-1.5 text-xs font-semibold">
+              Billetera de práctica
+            </p>
+
+            <h2
+              id="wallet-summary-title"
+              className="text-xl font-bold tracking-tight sm:text-2xl"
+            >
+              Aprendé. Explorá. Simulá.
+            </h2>
+
+            <p className="mt-2 text-xs leading-relaxed">
+              Tus monedas en un solo lugar, con saldos ficticios.
+            </p>
+          </div>
+        </section>
+
+        <section aria-labelledby="balances-title">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <h2 id="balances-title" className="text-sm font-bold">
+              Tus balances
+            </h2>
+
+            <span className="text-[11px] font-medium text-muted">
               Datos de ejemplo
             </span>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid min-w-0 grid-cols-2 gap-2 md:grid-cols-4">
             {mockBalances.map((balance) => (
-              <Card
+              <div
                 key={balance.currency}
-                className="relative overflow-hidden shadow-sm transition-shadow hover:shadow-md motion-reduce:transition-none"
+                role="group"
+                aria-label={balance.name}
+                className="min-w-0 rounded-xl border border-line bg-surface/80 px-3 py-3"
               >
-                <div
-                  aria-hidden="true"
-                  className="absolute inset-x-0 top-0 h-1 bg-brand/40"
-                />
+                <div className="mb-1.5 flex items-center gap-1.5">
+                  <WalletIcon />
 
-                <div className="mb-5 flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="text-base font-bold">
-                      {balance.currency}
-                    </h3>
-
-                    <p className="mt-1 text-sm text-muted">
-                      {balance.name}
-                    </p>
-                  </div>
-
-                  <span
-                    aria-hidden="true"
-                    className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-brand/10 bg-brand-soft text-xs font-bold text-brand"
-                  >
+                  <h3 className="text-xs font-bold">
                     {balance.currency}
-                  </span>
+                  </h3>
                 </div>
 
-                <p className="text-xs font-medium text-muted">
-                  Saldo ilustrativo
-                </p>
+                <p className="wrap-anywhere text-sm font-bold tracking-tight text-ink tabular-nums">
+                  <span className="sr-only">
+                    Saldo ficticio:
+                  </span>
 
-                <p className="mt-2 wrap-break-word text-2xl font-extrabold tracking-tight text-ink tabular-nums">
                   {formatBalance(
                     balance.amount,
                     balance.decimals
                   )}
                 </p>
-
-                <div className="mt-4 border-t border-line pt-3">
-                  <p className="text-xs font-medium text-muted">
-                    {balance.currency}
-                  </p>
-                </div>
-              </Card>
+              </div>
             ))}
           </div>
-
-          <p className="mt-4 max-w-2xl text-sm text-muted">
-            Estos balances son ejemplos para revisar el diseño.
-            No corresponden a tu cuenta ni se consultan al servidor.
-          </p>
         </section>
 
         <QuotesPanel quotes={quotesMock} />
