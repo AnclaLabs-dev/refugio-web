@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { AppLayout } from "../components/layout/AppLayout";
 import { UserAvatar } from "../components/ui/UserAvatar";
 import { Button } from "../components/ui/Button";
+import { Input } from "../components/ui/Input";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
+import { getMe, updateUserName, type BackendUser } from "../services/user";
 
 export default function ProfilePage() {
   useDocumentTitle("Mi Perfil | Refugio");
@@ -12,30 +14,103 @@ export default function ProfilePage() {
   const { user, firebaseUser, logout } = useAuth();
   const navigate = useNavigate();
 
+  const [backendUser, setBackendUser] = useState<BackendUser | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [profileError, setProfileError] = useState<string | null>(null);
+
   const [copiedUid, setCopiedUid] = useState(false);
+  const [copiedDbId, setCopiedDbId] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState("");
 
-  const displayName = user?.displayName || "Usuario de Refugio";
-  const email = user?.email || "Sin correo registrado";
-  const uid = user?.uid || "—";
+  // Edición de nombre conectada a PATCH /me
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState("");
+  const [savingName, setSavingName] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [nameSuccess, setNameSuccess] = useState<string | null>(null);
 
-  const creationDate = firebaseUser?.metadata.creationTime
-    ? new Date(firebaseUser.metadata.creationTime).toLocaleDateString("es-AR", {
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function fetchUserProfile() {
+      setLoadingProfile(true);
+      setProfileError(null);
+
+      try {
+        const data = await getMe(controller.signal);
+        if (!controller.signal.aborted) {
+          setBackendUser(data);
+          setNameInput(data.name || "");
+        }
+      } catch {
+        if (!controller.signal.aborted) {
+          setProfileError("No pudimos consultar los datos del servidor. Mostrando información de sesión.");
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoadingProfile(false);
+        }
+      }
+    }
+
+    void fetchUserProfile();
+
+    return () => controller.abort();
+  }, []);
+
+  const displayName = backendUser?.name || user?.displayName || "Usuario de Refugio";
+  const email = backendUser?.email || user?.email || "Sin correo registrado";
+  const uid = backendUser?.firebase_uid || user?.uid || "—";
+  const dbId = backendUser?.id || "—";
+
+  const rawCreationDate = backendUser?.created_at || firebaseUser?.metadata.creationTime;
+  const creationDate = rawCreationDate
+    ? new Date(rawCreationDate).toLocaleDateString("es-AR", {
         year: "numeric",
         month: "long",
         day: "numeric",
       })
     : "Reciente";
 
-  const handleCopyUid = async () => {
-    if (!user?.uid) return;
+  const handleCopyText = async (text: string, type: "uid" | "dbId") => {
+    if (!text || text === "—") return;
     try {
-      await navigator.clipboard.writeText(user.uid);
-      setCopiedUid(true);
-      setTimeout(() => setCopiedUid(false), 2000);
+      await navigator.clipboard.writeText(text);
+      if (type === "uid") {
+        setCopiedUid(true);
+        setTimeout(() => setCopiedUid(false), 2000);
+      } else {
+        setCopiedDbId(true);
+        setTimeout(() => setCopiedDbId(false), 2000);
+      }
     } catch {
       // Fallback silencioso si el portapapeles está bloqueado
+    }
+  };
+
+  const handleSaveName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = nameInput.trim();
+    if (!trimmed) {
+      setNameError("El nombre no puede estar vacío");
+      return;
+    }
+
+    setSavingName(true);
+    setNameError(null);
+    setNameSuccess(null);
+
+    try {
+      const updated = await updateUserName(trimmed);
+      setBackendUser(updated);
+      setNameSuccess("¡Nombre actualizado correctamente en la base de datos!");
+      setIsEditingName(false);
+      setTimeout(() => setNameSuccess(null), 4000);
+    } catch (err) {
+      setNameError(err instanceof Error ? err.message : "No pudimos actualizar tu nombre");
+    } finally {
+      setSavingName(false);
     }
   };
 
@@ -63,7 +138,7 @@ export default function ProfilePage() {
               Mi Perfil
             </h1>
             <p className="text-xs sm:text-sm text-muted mt-1">
-              Consultá tus datos personales y estado de tu cuenta simulada
+              Datos personales y credenciales sincronizadas con el servidor
             </p>
           </div>
 
@@ -78,6 +153,25 @@ export default function ProfilePage() {
           </Link>
         </header>
 
+        {/* Notificación de error o éxito al guardar */}
+        {profileError && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-xs font-medium text-amber-800">
+            {profileError}
+          </div>
+        )}
+        {nameSuccess && (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3.5 text-xs font-semibold text-emerald-800 flex items-center justify-between">
+            <span>✓ {nameSuccess}</span>
+            <button
+              type="button"
+              onClick={() => setNameSuccess(null)}
+              className="text-emerald-700 hover:text-emerald-900 font-bold ml-2"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {/* Tarjeta de Identidad y Foto de Perfil */}
         <section
           aria-labelledby="profile-summary-title"
@@ -87,8 +181,8 @@ export default function ProfilePage() {
             {/* Avatar generado automáticamente con iniciales */}
             <div className="relative group shrink-0">
               <UserAvatar
-                name={user?.displayName}
-                email={user?.email}
+                name={displayName}
+                email={email}
                 size="xl"
               />
               <span
@@ -109,7 +203,7 @@ export default function ProfilePage() {
                 </h2>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700 border border-emerald-200">
                   <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Cuenta Activa
+                  {loadingProfile ? "Sincronizando…" : "Cuenta Sincronizada"}
                 </span>
               </div>
 
@@ -118,14 +212,13 @@ export default function ProfilePage() {
               </p>
 
               <p className="text-xs text-muted/80 max-w-lg leading-relaxed pt-1">
-                Foto de perfil generada automáticamente a partir de tus iniciales.
-                La carga de foto personalizada con almacenamiento seguro en la nube se incorporará en la próxima actualización.
+                Foto de perfil generada a partir de tus iniciales y sincronizada con tu cuenta en el backend.
               </p>
             </div>
           </div>
         </section>
 
-        {/* Bloque de Información Personal (Solo Lectura) */}
+        {/* Bloque de Información Personal (Conectado a PostgreSQL) */}
         <section
           aria-labelledby="personal-data-title"
           className="rounded-2xl border border-line bg-surface p-6 shadow-xs space-y-5"
@@ -139,23 +232,80 @@ export default function ProfilePage() {
                 Datos personales y de acceso
               </h3>
               <p className="text-xs text-muted mt-0.5">
-                Visualización de solo lectura para esta versión
+                Datos de usuario en tiempo real desde la base de datos (PostgreSQL)
               </p>
             </div>
             <span className="rounded-lg bg-surface-soft px-2.5 py-1 text-[11px] font-semibold text-muted border border-line">
-              Solo lectura
+              PostgreSQL · Railway
             </span>
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {/* Campo: Nombre completo */}
-            <div className="space-y-1.5 rounded-xl border border-line bg-page/50 p-3.5">
-              <span className="text-xs font-semibold text-muted">
-                Nombre y apellido
-              </span>
-              <p className="text-sm font-bold text-ink truncate">
-                {displayName}
-              </p>
+            {/* Campo: Nombre completo (con edición PATCH /me) */}
+            <div className="space-y-1.5 rounded-xl border border-line bg-page/50 p-3.5 sm:col-span-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-muted">
+                  Nombre y apellido
+                </span>
+                {!isEditingName && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNameInput(displayName);
+                      setIsEditingName(true);
+                      setNameError(null);
+                    }}
+                    className="text-xs font-bold text-brand hover:underline cursor-pointer"
+                  >
+                    Editar nombre
+                  </button>
+                )}
+              </div>
+
+              {isEditingName ? (
+                <form onSubmit={handleSaveName} className="space-y-3 pt-1">
+                  <Input
+                    label="Nuevo nombre"
+                    type="text"
+                    value={nameInput}
+                    onChange={(e) => setNameInput(e.target.value)}
+                    maxLength={100}
+                    placeholder="Tu nombre completo"
+                    required
+                    disabled={savingName}
+                  />
+                  {nameError && (
+                    <p className="text-xs font-semibold text-danger">{nameError}</p>
+                  )}
+                  <div className="flex items-center gap-2 pt-1">
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      className="!py-1.5 !px-3 text-xs font-bold rounded-lg"
+                      loading={savingName}
+                      loadingText="Guardando…"
+                    >
+                      Guardar cambios
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="!py-1.5 !px-3 text-xs font-semibold rounded-lg"
+                      disabled={savingName}
+                      onClick={() => {
+                        setIsEditingName(false);
+                        setNameError(null);
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </form>
+              ) : (
+                <p className="text-sm font-bold text-ink truncate">
+                  {displayName}
+                </p>
+              )}
             </div>
 
             {/* Campo: Correo electrónico */}
@@ -165,27 +315,6 @@ export default function ProfilePage() {
               </span>
               <p className="text-sm font-bold text-ink truncate">
                 {email}
-              </p>
-            </div>
-
-            {/* Campo: Identificador de Usuario (UID) */}
-            <div className="space-y-1.5 rounded-xl border border-line bg-page/50 p-3.5 sm:col-span-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-muted">
-                  Identificador de cuenta (UID)
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    void handleCopyUid();
-                  }}
-                  className="text-xs font-bold text-brand hover:underline cursor-pointer"
-                >
-                  {copiedUid ? "✓ ¡Copiado!" : "Copiar ID"}
-                </button>
-              </div>
-              <p className="font-mono text-xs text-ink/80 truncate">
-                {uid}
               </p>
             </div>
 
@@ -199,30 +328,55 @@ export default function ProfilePage() {
               </p>
             </div>
 
-            {/* Campo: Tipo de entorno */}
+            {/* Campo: Identificador de Usuario (Firebase UID) */}
             <div className="space-y-1.5 rounded-xl border border-line bg-page/50 p-3.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-muted">
+                  Identificador de autenticación (Firebase UID)
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleCopyText(uid, "uid");
+                  }}
+                  className="text-xs font-bold text-brand hover:underline cursor-pointer"
+                >
+                  {copiedUid ? "✓ ¡Copiado!" : "Copiar UID"}
+                </button>
+              </div>
+              <p className="font-mono text-xs text-ink/80 truncate">
+                {uid}
+              </p>
+            </div>
+
+            {/* Campo: ID interno en base de datos PostgreSQL */}
+            <div className="space-y-1.5 rounded-xl border border-line bg-page/50 p-3.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-muted">
+                  ID de usuario en Base de Datos (UUID)
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleCopyText(dbId, "dbId");
+                  }}
+                  className="text-xs font-bold text-brand hover:underline cursor-pointer"
+                >
+                  {copiedDbId ? "✓ ¡Copiado!" : "Copiar ID"}
+                </button>
+              </div>
+              <p className="font-mono text-xs text-ink/80 truncate">
+                {dbId}
+              </p>
+            </div>
+
+            {/* Campo: Tipo de entorno */}
+            <div className="space-y-1.5 rounded-xl border border-line bg-page/50 p-3.5 sm:col-span-2">
               <span className="text-xs font-semibold text-muted">
                 Modalidad de la cuenta
               </span>
               <p className="text-sm font-bold text-brand">
-                Simulador Financiero 100% de Práctica
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Card Informativa de Próxima Edición */}
-        <section className="rounded-2xl border border-line/80 bg-surface-soft/60 p-5">
-          <div className="flex items-start gap-3.5">
-            <div className="size-9 rounded-xl bg-surface border border-line flex items-center justify-center text-brand font-bold text-sm shrink-0 shadow-2xs">
-              ☁
-            </div>
-            <div className="space-y-1">
-              <h4 className="text-sm font-bold text-ink">
-                Próximamente: Edición y almacenamiento en la nube
-              </h4>
-              <p className="text-xs text-muted leading-relaxed">
-                Estamos trabajando en la infraestructura de almacenamiento (AWS S3) para que puedas subir tu propia fotografía de perfil, cambiar tu nombre y gestionar tus claves de seguridad directamente desde este panel.
+                Simulador Financiero 100% de Práctica · Fondos ficticios
               </p>
             </div>
           </div>
