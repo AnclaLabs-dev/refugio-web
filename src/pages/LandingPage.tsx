@@ -32,7 +32,7 @@ export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [rates, setRates] = useState<Rate[]>(DEFAULT_RATES);
 
-  useDocumentTitle("Refugio | Simulador Financiero y Billetera Virtual");
+  useDocumentTitle("Refugio | Tu billetera digital contra la inflación");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -76,8 +76,8 @@ export default function LandingPage() {
             <a href="#cotizaciones" className="hover:text-ink transition-colors">
               Cotizaciones
             </a>
-            <a href="#por-que-simular" className="hover:text-ink transition-colors">
-              Por qué simular
+            <a href="#comparador" className="hover:text-ink transition-colors">
+              Comparador
             </a>
           </nav>
 
@@ -102,7 +102,7 @@ export default function LandingPage() {
                   to="/register"
                   className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-bold text-sm bg-brand text-on-brand hover:bg-brand-hover transition-colors shadow-sm"
                 >
-                  Empezar a simular
+                  Crear cuenta gratis
                 </Link>
               </>
             )}
@@ -162,11 +162,11 @@ export default function LandingPage() {
                 Cotizaciones
               </a>
               <a
-                href="#por-que-simular"
+                href="#comparador"
                 onClick={() => setMobileMenuOpen(false)}
                 className="py-1 hover:text-brand"
               >
-                Por qué simular
+                Comparador
               </a>
             </nav>
             <div className="pt-4 border-t border-line flex flex-col gap-2.5">
@@ -189,7 +189,7 @@ export default function LandingPage() {
                     to="/register"
                     className="w-full text-center py-3 rounded-xl font-bold bg-brand text-on-brand shadow-sm"
                   >
-                    Empezar a simular
+                    Crear cuenta gratis
                   </Link>
                 </>
               )}
@@ -215,20 +215,20 @@ export default function LandingPage() {
               {/* Badge superior */}
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-soft border border-line/60 text-xs sm:text-sm font-semibold text-ink shadow-xs">
                 <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Simulador Educativo · 100% libre de riesgo real</span>
+                <span>Billetera digital · Transparencia cambiaria en tiempo real</span>
               </div>
 
               {/* Titular */}
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-ink tracking-tight leading-[1.08]">
-                Aprendé a operar con cripto y divisas,{" "}
-                <span className="text-brand">sin arriesgar tu plata.</span>
+                Protegé el valor de tus pesos,{" "}
+                <span className="text-brand">con total transparencia.</span>
               </h1>
 
               {/* Subtítulo */}
               <p className="text-base sm:text-lg text-muted max-w-2xl mx-auto lg:mx-0 font-normal leading-relaxed">
-                Refugio es la billetera digital interactiva diseñada para que
-                experimentes el mercado con saldo ficticio, precios reales en vivo y
-                cero ansiedad financiera.
+                Pasá tus ahorros a dólares, USDT y Bitcoin con cotizaciones en
+                tiempo real. Mirá la tasa exacta de cada operación y compará
+                alternativas lado a lado sin costos ocultos.
               </p>
 
               {/* Botones de acción principal */}
@@ -237,7 +237,7 @@ export default function LandingPage() {
                   to="/register"
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl bg-brand text-on-brand hover:bg-brand-hover font-bold text-base shadow-md transition-all hover:scale-[1.01]"
                 >
-                  <span>Crear cuenta gratuita</span>
+                  <span>Crear cuenta gratis</span>
                   <svg
                     viewBox="0 0 20 20"
                     width="18"
@@ -253,10 +253,10 @@ export default function LandingPage() {
                 </Link>
 
                 <a
-                  href="#como-funciona"
+                  href="#cotizaciones"
                   className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3.5 rounded-2xl bg-surface border border-line hover:bg-surface-soft font-bold text-base text-ink transition-colors"
                 >
-                  Ver cómo funciona
+                  Ver cotizaciones en vivo
                 </a>
               </div>
 
@@ -264,15 +264,15 @@ export default function LandingPage() {
               <div className="pt-4 flex flex-wrap items-center justify-center lg:justify-start gap-6 text-xs sm:text-sm font-semibold text-muted">
                 <div className="flex items-center gap-2">
                   <span className="text-emerald-600 font-bold">✓</span>
-                  <span>Saldo virtual al registrarte</span>
+                  <span>Sin costos de apertura</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-emerald-600 font-bold">✓</span>
-                  <span>Sin tarjetas ni validación bancaria</span>
+                  <span>Cotizaciones en tiempo real</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-emerald-600 font-bold">✓</span>
-                  <span>Cotizaciones oficiales y cripto</span>
+                  <span>Cálculos y tasas transparentes</span>
                 </div>
               </div>
             </div>
@@ -289,7 +289,7 @@ export default function LandingPage() {
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-muted">Billetera de</p>
-                      <p className="text-sm font-bold text-ink">Simulador Refugio</p>
+                      <p className="text-sm font-bold text-ink">Tu Refugio</p>
                     </div>
                   </div>
                   <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">
@@ -300,7 +300,7 @@ export default function LandingPage() {
                 {/* Saldo Total */}
                 <div className="space-y-1">
                   <p className="text-xs uppercase tracking-wider font-bold text-muted">
-                    Balance total simulado
+                    Saldo total estimado
                   </p>
                   <p className="text-3xl sm:text-4xl font-black text-ink tracking-tight">
                     $ 1.250.000,00{" "}
@@ -309,7 +309,7 @@ export default function LandingPage() {
                   <p className="text-xs font-bold text-emerald-600 flex items-center gap-1 pt-1">
                     <span>↑ +4,8% esta semana</span>
                     <span className="text-muted font-normal">
-                      · Rendimiento simulado
+                      · Rendimiento estimado
                     </span>
                   </p>
                 </div>
@@ -330,10 +330,10 @@ export default function LandingPage() {
                   </div>
                 </div>
 
-                {/* Desglose de Monedas Simuladas */}
+                {/* Desglose de Monedas */}
                 <div className="space-y-2.5 pt-1">
                   <p className="text-xs font-bold text-muted uppercase tracking-wider">
-                    Tus activos de práctica
+                    Tus monedas duras
                   </p>
 
                   <div className="p-3 rounded-xl bg-page/70 border border-line/40 flex items-center justify-between">
@@ -372,7 +372,7 @@ export default function LandingPage() {
                 {/* Floating pill badge */}
                 <div className="p-2.5 rounded-xl bg-brand-soft border border-brand/20 flex items-center gap-2 text-xs font-medium text-ink">
                   <span className="text-brand text-sm font-bold">ℹ</span>
-                  <span>Podés reiniciar tus balances de prueba cuando quieras.</span>
+                  <span>Cotizaciones sincronizadas en tiempo real desde el mercado.</span>
                 </div>
               </div>
             </div>
@@ -394,7 +394,7 @@ export default function LandingPage() {
                 Cotizaciones del mercado en tiempo real
               </h2>
               <p className="text-xs sm:text-sm text-muted mt-0.5">
-                Precios de referencia sincronizados para que aprendas con números del día.
+                Precios de referencia sincronizados para que decidas con números al día.
               </p>
             </div>
             <span className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-surface-soft border border-line text-muted">
@@ -450,13 +450,13 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 className="text-xs uppercase tracking-widest font-black text-brand">
-              Tu laboratorio financiero
+              Por qué elegir Refugio
             </h2>
             <p className="text-3xl sm:text-4xl font-black text-ink tracking-tight mt-2">
-              Todo lo que necesitás para aprender a tu propio ritmo
+              Todo lo que necesitás para cuidar tu poder de compra
             </p>
             <p className="text-sm sm:text-base text-muted mt-3">
-              Herramientas reales, interfaz intuitiva y simulación de grado fintech.
+              Herramientas claras, interfaz intuitiva y tasas transparentes en cada operación.
             </p>
           </div>
 
@@ -469,13 +469,12 @@ export default function LandingPage() {
                   ⇄
                 </div>
                 <h3 className="text-2xl font-black text-ink tracking-tight">
-                  Simulación Multimoneda Instantánea
+                  Billetera multimoneda
                 </h3>
                 <p className="text-muted text-sm sm:text-base leading-relaxed">
                   Operá con Pesos (ARS), Dólares (USD) y Criptomonedas (BTC, USDT) en
-                  un solo lugar. Experimentá el impacto de la devaluación y la
-                  volatilidad en una cartera diversificada sin poner en riesgo tus
-                  fondos.
+                  un solo lugar. Gestioná tus fondos en monedas duras y protegé el
+                  valor de tu dinero frente a la inflación.
                 </p>
               </div>
 
@@ -503,16 +502,15 @@ export default function LandingPage() {
                   🛡️
                 </div>
                 <h3 className="text-xl font-black text-ink tracking-tight">
-                  0% Riesgo, 100% Práctica
+                  Transparencia de tasas
                 </h3>
                 <p className="text-muted text-sm leading-relaxed">
-                  Cometé errores, probá comprar en máximos o vender en mínimos. En
-                  Refugio aprendés del error sin las consecuencias devastadoras del
-                  dinero real.
+                  Antes de confirmar cualquier compra o intercambio, ves la tasa aplicada,
+                  la fuente de la cotización y el spread exacto. Sin sorpresas ni comisiones ocultas.
                 </p>
               </div>
               <div className="mt-6 p-3 rounded-xl bg-surface-soft border border-line text-xs font-bold text-muted">
-                Saldo de prueba garantizado
+                Cálculo exacto antes de confirmar
               </div>
             </div>
 
@@ -523,15 +521,15 @@ export default function LandingPage() {
                   📊
                 </div>
                 <h3 className="text-xl font-black text-ink tracking-tight">
-                  Precios Oficiales & Mercado
+                  Panel multi-dólar en vivo
                 </h3>
                 <p className="text-muted text-sm leading-relaxed">
-                  Seguí el diferencial entre Dólar Oficial, MEP, Blue y Dólar Cripto.
-                  Entendé la brecha cambiaria como lo hacen los profesionales.
+                  Seguí el valor del Dólar Oficial, MEP, Blue y Dólar Cripto en simultáneo.
+                  Entendé la brecha cambiaria y las puntas de compra y venta en tiempo real.
                 </p>
               </div>
               <div className="mt-6 p-3 rounded-xl bg-surface-soft border border-line text-xs font-bold text-muted">
-                Spread y cotizaciones en vivo
+                Dólar oficial, MEP, blue y cripto
               </div>
             </div>
 
@@ -542,12 +540,12 @@ export default function LandingPage() {
                   🎯
                 </div>
                 <h3 className="text-2xl font-black text-ink tracking-tight">
-                  Metas de Ahorro y Planificación
+                  Metas de ahorro en USD
                 </h3>
                 <p className="text-muted text-sm sm:text-base leading-relaxed">
-                  Fijá metas de ahorro para vacaciones, fondo de emergencia o tu
-                  primer portfolio de inversión simulado. Medí cuánto tiempo te
-                  llevaría alcanzarlo según tus decisiones.
+                  Fijá un objetivo de ahorro en moneda dura. Refugio unifica el
+                  valor en dólares de tus USD, USDT y BTC a la cotización vigente
+                  para que monitorees tu progreso real.
                 </p>
               </div>
               <div className="mt-8 pt-4 border-t border-line/40 flex items-center justify-between text-xs font-semibold text-muted">
@@ -575,7 +573,7 @@ export default function LandingPage() {
               ¿Cómo empezar a usar Refugio?
             </p>
             <p className="text-sm sm:text-base text-muted mt-2">
-              Tres pasos sencillos para empezar tu entrenamiento financiero hoy.
+              Tres pasos sencillos para empezar a cuidar tu dinero hoy.
             </p>
           </div>
 
@@ -587,8 +585,8 @@ export default function LandingPage() {
               </span>
               <h3 className="text-xl font-black text-ink">Creá tu cuenta</h3>
               <p className="text-muted text-sm leading-relaxed">
-                Solo necesitás un correo electrónico y una contraseña. Sin fotos de
-                tu DNI, sin tarjetas de crédito y sin datos sensibles.
+                Solo necesitás un correo electrónico y una contraseña en menos de un minuto.
+                Sin burocracia ni trámites bancarios.
               </p>
             </div>
 
@@ -598,11 +596,11 @@ export default function LandingPage() {
                 2
               </span>
               <h3 className="text-xl font-black text-ink">
-                Recibí tu saldo virtual
+                Ingresá a tu billetera
               </h3>
               <p className="text-muted text-sm leading-relaxed">
-                Tu billetera se activa inmediatamente con saldos de práctica
-                precargados en pesos y monedas extranjeras para operar.
+                Tu cuenta se inicializa con saldo en pesos para que puedas
+                empezar a operar, comparar cotizaciones y dolarizarte al instante.
               </p>
             </div>
 
@@ -611,10 +609,10 @@ export default function LandingPage() {
               <span className="w-10 h-10 rounded-full bg-brand text-on-brand flex items-center justify-center font-black text-sm">
                 3
               </span>
-              <h3 className="text-xl font-black text-ink">Operá y aprendé</h3>
+              <h3 className="text-xl font-black text-ink">Comprá, intercambiá y compará</h3>
               <p className="text-muted text-sm leading-relaxed">
-                Comprá dólares ficticios, intercambiá por Bitcoin o Tether, analizá
-                los spreads y dominá las reglas del mercado antes de operar de verdad.
+                Pasá pesos a cripto, cambiá divisas y usá el comparador histórico
+                para entender cómo proteger mejor tus ahorros.
               </p>
             </div>
           </div>
@@ -622,41 +620,42 @@ export default function LandingPage() {
       </section>
 
       {/* ──────────────────────────────────────────────────────────
-          6. POR QUÉ SIMULAR (CONTRASTE)
+          6. COMPARADOR HISTÓRICO (QUÉ HUBIERA PASADO)
           ────────────────────────────────────────────────────────── */}
-      <section id="por-que-simular" className="py-20 lg:py-28">
+      <section id="comparador" className="py-20 lg:py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="p-8 sm:p-12 lg:p-16 rounded-[32px] bg-surface border border-line shadow-sm grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
             <div className="space-y-6">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-soft border border-brand/20 text-xs font-bold text-brand">
-                La ventaja de entrenar antes
+                Comparador "¿Qué hubiera pasado?"
               </div>
               <h2 className="text-3xl sm:text-4xl font-black text-ink tracking-tight">
-                No arriesgues tu capital sin haber practicado primero
+                Medí el impacto real de tus decisiones de ahorro
               </h2>
               <p className="text-muted text-sm sm:text-base leading-relaxed">
-                La mayoría de las personas pierde dinero en sus primeras operaciones
-                con criptomonedas o arbitraje de divisas por falta de práctica o
-                ansiedad. Refugio te da el campo de juego para ganar confianza.
+                La inflación erosiona tus ingresos mes a mes y elegir dónde guardar tu plata
+                suele ser confuso. Refugio te permite comparar qué hubiera pasado con tu dinero
+                si te quedabas en pesos o pasabas a dólar oficial, MEP, blue, USDT o Bitcoin
+                en 30, 90 o 180 días.
               </p>
 
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <span className="text-emerald-600 font-bold text-lg">✓</span>
                   <span className="text-sm font-semibold text-ink">
-                    Entendé los tipos de cambio sin perder dinero en comisiones
+                    Métricas históricas basadas en cotizaciones reales de mercado
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-emerald-600 font-bold text-lg">✓</span>
                   <span className="text-sm font-semibold text-ink">
-                    Conocé la volatilidad de Bitcoin y stablecoins en carne propia
+                    Comparación lado a lado de monedas duras y tipos de cambio
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-emerald-600 font-bold text-lg">✓</span>
                   <span className="text-sm font-semibold text-ink">
-                    Desarrollá criterio financiero sin estrés
+                    Claridad absoluta en spreads y tasas aplicadas
                   </span>
                 </div>
               </div>
@@ -677,10 +676,10 @@ export default function LandingPage() {
                 />
               </svg>
               <p className="text-xl font-black text-ink tracking-tight">
-                Aprendé. Explorá. Simulá.
+                Protegé. Dolarizá. Crecé.
               </p>
               <p className="text-xs text-muted mt-1 max-w-xs">
-                Tu refugio financiero para aprender las reglas de la nueva economía.
+                Tu billetera digital para cuidar el poder de compra de tus pesos.
               </p>
             </div>
           </div>
@@ -701,18 +700,18 @@ export default function LandingPage() {
 
             <div className="relative z-10 max-w-2xl mx-auto space-y-6">
               <h2 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
-                Empezá a simular hoy mismo en menos de un minuto.
+                Empezá a cuidar tu dinero hoy mismo.
               </h2>
               <p className="text-base sm:text-lg opacity-90 max-w-lg mx-auto">
-                Registrate sin costo, recibí tus fondos de práctica y descubrí cómo
-                funciona el dinero digital sin arriesgar un solo centavo.
+                Creá tu cuenta gratis en menos de un minuto, compará cotizaciones
+                en tiempo real y elegí la mejor forma de proteger tus ahorros.
               </p>
               <div className="pt-2">
                 <Link
                   to="/register"
                   className="inline-flex items-center justify-center px-8 py-4 rounded-2xl bg-surface text-brand font-black text-base shadow-lg hover:bg-page transition-transform hover:scale-105"
                 >
-                  Crear cuenta gratuita
+                  Crear cuenta gratis
                 </Link>
               </div>
             </div>
@@ -747,8 +746,8 @@ export default function LandingPage() {
                 <span className="text-xl font-black tracking-tight">Refugio</span>
               </div>
               <p className="text-sm text-muted max-w-sm leading-relaxed">
-                La plataforma educativa de simulación multimoneda para experimentar
-                con cripto y divisas en un entorno seguro y sin dinero real.
+                Herramientas financieras simples y transparentes que ayudan a las
+                personas de Latinoamérica a proteger el valor de su dinero.
               </p>
             </div>
 
@@ -771,6 +770,11 @@ export default function LandingPage() {
                 <li>
                   <a href="#cotizaciones" className="hover:text-ink">
                     Cotizaciones en vivo
+                  </a>
+                </li>
+                <li>
+                  <a href="#comparador" className="hover:text-ink">
+                    Comparador
                   </a>
                 </li>
               </ul>
@@ -803,15 +807,14 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Disclaimer de Simulación & Legal */}
+          {/* Aviso Legal Único y de Demostración */}
           <div className="pt-8 border-t border-line/40 text-xs text-muted/80 space-y-2 leading-relaxed">
             <p>
-              <strong>Aviso legal y educativo:</strong> Refugio es un simulador con
-              fines didácticos y de entretenimiento educativo. No es una entidad
-              bancaria, casa de cambio, ALyC ni Proveedor de Servicios de Activos
-              Virtuales (PSAV). Todos los saldos, monedas y transacciones en esta
-              plataforma son 100% ficticios y no tienen valor monetario ni pueden
-              ser canjeados por dinero real.
+              <strong>Aviso institucional:</strong> Refugio opera con saldo de
+              demostración: no está conectado a bancos ni a entidades financieras,
+              por lo que los fondos no son dinero real. Plataforma desarrollada
+              por Ancla Labs. Las cotizaciones son provistas por DolarAPI y
+              CoinGecko únicamente con fines informativos.
             </p>
             <p className="pt-2 font-medium">
               © {new Date().getFullYear()} Refugio. Todos los derechos reservados.

@@ -37,12 +37,12 @@ export function AuthLayout({
   children,
   heroHeadline = (
     <>
-      Aprendé.<br />
-      Explorá.<br />
-      Simulá.
+      Protegé.<br />
+      Dolarizá.<br />
+      Crecé.
     </>
   ),
-  heroSubtitle = "Una billetera para aprender, sin dinero real.",
+  heroSubtitle = "Tu billetera digital para cuidar el valor de lo que ganás.",
 }: AuthLayoutProps) {
   return (
     <main className="min-h-screen bg-page flex items-center justify-center p-4 sm:p-6 lg:p-8">
