@@ -4,7 +4,6 @@ import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../services/firebase";
 import { useAuth } from "../context/AuthContext";
 import { AuthLayout } from "../components/auth/AuthLayout";
-import { SimulationBadge } from "../components/auth/SimulationBadge";
 import { Input } from "../components/ui/Input";
 import { Button } from "../components/ui/Button";
 import { getAuthErrorMessage } from "../services/authErrors";
@@ -116,13 +115,13 @@ export default function LoginPage() {
   return (
     <AuthLayout>
       <div className="w-full">
-        {/* Badge superior */}
-        <SimulationBadge className="mb-4" />
-
         {/* Título de bienvenida */}
-        <h2 className="text-2xl sm:text-[1.75rem] font-bold text-ink tracking-tight mb-6">
+        <h2 className="text-2xl sm:text-[1.75rem] font-bold text-ink tracking-tight mb-2">
           Te damos la bienvenida
         </h2>
+        <p className="text-sm text-muted mb-6">
+          Ingresá a tu cuenta para gestionar tu billetera
+        </p>
 
         {/* Mensajes de feedback */}
         {success && (
@@ -243,7 +242,7 @@ export default function LoginPage() {
             to="/register"
             className="text-brand font-bold hover:underline"
           >
-            Crear cuenta gratuita
+            Crear cuenta gratis
           </Link>
         </p>
 
