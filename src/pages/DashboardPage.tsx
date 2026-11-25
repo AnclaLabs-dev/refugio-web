@@ -6,9 +6,13 @@ import { AppLayout } from "../components/layout/AppLayout";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { QuotesPanel } from "../components/dashboard/QuotesPanel";
-import { quotesMock } from "../mocks/quotesMock";
-import { apiFetch } from "../services/api";
-import { getWallet, type WalletBalance } from "../services/wallet";
+import {
+  getWallet,
+  createDeposit,
+  DEPOSIT_LIMITS,
+  type WalletBalance,
+  type DepositCurrency,
+} from "../services/wallet";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 type WalletState =
@@ -64,10 +68,11 @@ export default function DashboardPage() {
 
   // Modal de Recarga Simulada
   const [showReloadModal, setShowReloadModal] = useState(false);
-  const [reloadCurrency, setReloadCurrency] = useState("ARS");
+  const [reloadCurrency, setReloadCurrency] = useState<DepositCurrency>("ARS");
   const [reloadAmount, setReloadAmount] = useState("100000");
   const [reloading, setReloading] = useState(false);
   const [reloadNotice, setReloadNotice] = useState<string | null>(null);
+  const [reloadError, setReloadError] = useState<string | null>(null);
 
   const userName = user?.displayName || user?.email || "Usuario";
 
@@ -121,47 +126,47 @@ export default function DashboardPage() {
 
   const handleReloadSimulated = async (e: React.FormEvent) => {
     e.preventDefault();
-    const amountNum = parseFloat(reloadAmount);
-    if (isNaN(amountNum) || amountNum <= 0) return;
-
-    setReloading(true);
+    setReloadError(null);
     setReloadNotice(null);
 
+    const amountNum = parseFloat(reloadAmount);
+    if (isNaN(amountNum) || amountNum <= 0) {
+      setReloadError("Ingresá un monto válido mayor a 0.");
+      return;
+    }
+
+    const limits = DEPOSIT_LIMITS[reloadCurrency];
+    if (amountNum < 1) {
+      setReloadError("El monto mínimo por recarga es 1.");
+      return;
+    }
+    if (amountNum > limits.perDeposit) {
+      setReloadError(
+        `El monto máximo por recarga es ${limits.perDeposit.toLocaleString("es-AR")} ${reloadCurrency}.`
+      );
+      return;
+    }
+
+    setReloading(true);
+
     try {
-      // Intentar enviar al backend si ya implementó el endpoint
-      await apiFetch("/wallet/deposit", {
-        method: "POST",
-        body: JSON.stringify({
-          currency_code: reloadCurrency,
-          amount: amountNum,
-        }),
+      const result = await createDeposit({
+        currency: reloadCurrency,
+        amount: amountNum,
       });
 
-      // Refrescar desde backend
+      // Refrescar balances reales desde PostgreSQL
       setAttempt((current) => current + 1);
+
+      const formattedAmount = Number(result.deposit.amount).toLocaleString("es-AR");
       setReloadNotice(
-        `¡Recargaste $${amountNum.toLocaleString("es-AR")} ${reloadCurrency} con éxito!`
+        `¡Recarga exitosa! Se acreditaron $${formattedAmount} ${reloadCurrency} en tu cuenta.`
       );
-    } catch {
-      // Actualización optimista en Front si el backend aún no tiene el endpoint
-      setWalletState((prev) => {
-        if (prev.status !== "success") return prev;
-        return {
-          ...prev,
-          balances: prev.balances.map((b) => {
-            if (b.currency_code === reloadCurrency) {
-              const current = parseFloat(b.amount) || 0;
-              return {
-                ...b,
-                amount: (current + amountNum).toFixed(b.decimals),
-              };
-            }
-            return b;
-          }),
-        };
-      });
-      setReloadNotice(
-        `¡Saldo simulado acreditado! Se sumaron ${amountNum.toLocaleString("es-AR")} ${reloadCurrency} de práctica a tu billetera.`
+    } catch (err) {
+      setReloadError(
+        err instanceof Error
+          ? err.message
+          : "No pudimos completar la recarga en el servidor. Intentá nuevamente."
       );
     } finally {
       setReloading(false);
@@ -204,6 +209,7 @@ export default function DashboardPage() {
             onClick={() => {
               setShowReloadModal(true);
               setReloadNotice(null);
+              setReloadError(null);
             }}
           >
             <span>+ Recargar saldo simulado</span>
@@ -331,7 +337,7 @@ export default function DashboardPage() {
         </section>
 
         {/* Panel de Cotizaciones de Referencia */}
-        <QuotesPanel quotes={quotesMock} />
+        <QuotesPanel />
 
         {/* Modal para Recarga de Dinero Simulado */}
         {showReloadModal && (
@@ -364,13 +370,22 @@ export default function DashboardPage() {
                     type="button"
                     variant="primary"
                     className="w-full !py-2.5 font-bold"
-                    onClick={() => setShowReloadModal(false)}
+                    onClick={() => {
+                      setShowReloadModal(false);
+                      setReloadNotice(null);
+                    }}
                   >
                     Entendido
                   </Button>
                 </div>
               ) : (
                 <form onSubmit={handleReloadSimulated} className="space-y-4">
+                  {reloadError && (
+                    <div className="p-3 rounded-xl bg-danger-surface border border-danger/30 text-danger text-xs font-semibold">
+                      {reloadError}
+                    </div>
+                  )}
+
                   <div className="space-y-1.5">
                     <label className="text-sm font-semibold text-ink">
                       Moneda a recargar
@@ -378,19 +393,19 @@ export default function DashboardPage() {
                     <select
                       value={reloadCurrency}
                       onChange={(e) => {
-                        setReloadCurrency(e.target.value);
-                        if (e.target.value === "ARS") setReloadAmount("100000");
-                        if (e.target.value === "USD") setReloadAmount("500");
-                        if (e.target.value === "USDT") setReloadAmount("200");
-                        if (e.target.value === "BTC") setReloadAmount("0.005");
+                        const curr = e.target.value as DepositCurrency;
+                        setReloadCurrency(curr);
+                        if (curr === "ARS") setReloadAmount("100000");
+                        if (curr === "USD") setReloadAmount("500");
                       }}
                       className="w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-sm font-semibold text-ink focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
                     >
-                      <option value="ARS">ARS · Peso argentino</option>
-                      <option value="USD">USD · Dólar estadounidense</option>
-                      <option value="USDT">USDT · Tether</option>
-                      <option value="BTC">BTC · Bitcoin</option>
+                      <option value="ARS">ARS · Peso argentino (Hasta $1.000.000)</option>
+                      <option value="USD">USD · Dólar estadounidense (Hasta $1.000)</option>
                     </select>
+                    <p className="text-[11px] text-muted leading-relaxed">
+                      El backend admite recargas en ARS y USD. Para USDT o BTC podés convertir fondos fiduciarios desde las opciones de swap.
+                    </p>
                   </div>
 
                   <Input
@@ -398,6 +413,7 @@ export default function DashboardPage() {
                     type="number"
                     step="any"
                     min="1"
+                    max={DEPOSIT_LIMITS[reloadCurrency].perDeposit}
                     value={reloadAmount}
                     onChange={(e) => setReloadAmount(e.target.value)}
                     required
@@ -428,6 +444,13 @@ export default function DashboardPage() {
                         >
                           + $500.000
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => setReloadAmount("1000000")}
+                          className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface-soft text-ink hover:bg-brand/10 hover:text-brand transition-colors cursor-pointer"
+                        >
+                          Máx ($1.000.000)
+                        </button>
                       </>
                     )}
                     {reloadCurrency === "USD" && (
@@ -445,6 +468,13 @@ export default function DashboardPage() {
                           className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface-soft text-ink hover:bg-brand/10 hover:text-brand transition-colors cursor-pointer"
                         >
                           + $500
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setReloadAmount("1000")}
+                          className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface-soft text-ink hover:bg-brand/10 hover:text-brand transition-colors cursor-pointer"
+                        >
+                          Máx ($1.000)
                         </button>
                       </>
                     )}
