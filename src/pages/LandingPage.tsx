@@ -1,14 +1,53 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { quotesMock } from "../mocks/quotesMock";
+import { getRates, type Rate } from "../services/rates";
 import { RefugioLogo } from "../components/ui/RefugioLogo";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
+
+const DEFAULT_RATES: Rate[] = [
+  { pair: "USD/ARS", base: "USD", quote: "ARS", rate_type: "oficial", buy: "1180.00", sell: "1220.00", source: "dolarapi.com", fetched_at: new Date().toISOString(), stale: false },
+  { pair: "BTC/USD", base: "BTC", quote: "USD", rate_type: "spot", buy: "96500.00", sell: "96500.00", source: "coingecko.com", fetched_at: new Date().toISOString(), stale: false },
+  { pair: "USDT/USD", base: "USDT", quote: "USD", rate_type: "spot", buy: "1.00", sell: "1.00", source: "coingecko.com", fetched_at: new Date().toISOString(), stale: false },
+];
+
+function getLandingRateLabel(base: string, quote: string): string {
+  if (base === "USD" && quote === "ARS") return "Dólar Oficial (USD/ARS)";
+  if (base === "BTC" && quote === "USD") return "Bitcoin (BTC/USD)";
+  if (base === "USDT" && quote === "USD") return "Tether (USDT/USD)";
+  return `${base}/${quote}`;
+}
+
+function formatLandingPrice(amount: string, quote: string): string {
+  const val = Number(amount);
+  if (isNaN(val)) return amount;
+  if (quote === "ARS") {
+    return `$${val.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+  return `US$${val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
 
 export default function LandingPage() {
   const { user } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [rates, setRates] = useState<Rate[]>(DEFAULT_RATES);
+
   useDocumentTitle("Refugio | Simulador Financiero y Billetera Virtual");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    getRates(controller.signal)
+      .then((res) => {
+        if (!controller.signal.aborted && res.rates.length > 0) {
+          setRates(res.rates);
+        }
+      })
+      .catch(() => {
+        // Fallback a DEFAULT_RATES en caso de error o sin conexión
+      });
+
+    return () => controller.abort();
+  }, []);
 
   return (
     <div className="min-h-screen bg-page text-ink selection:bg-brand selection:text-on-brand flex flex-col font-sans">
@@ -364,15 +403,17 @@ export default function LandingPage() {
           </div>
 
           {/* Grid de Cotizaciones */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {quotesMock.map((quote) => (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {rates.map((rate) => (
               <div
-                key={quote.id}
+                key={`${rate.base}-${rate.quote}-${rate.rate_type}`}
                 className="p-4 rounded-2xl bg-page border border-line hover:border-brand/40 transition-all shadow-xs"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-ink">{quote.name}</span>
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span className="text-xs font-bold text-ink truncate mr-2">
+                    {getLandingRateLabel(rate.base, rate.quote)}
+                  </span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" title="En vivo" />
                 </div>
                 <div className="mt-3 flex items-baseline justify-between">
                   <div>
@@ -380,7 +421,7 @@ export default function LandingPage() {
                       Compra
                     </span>
                     <span className="text-base sm:text-lg font-black text-ink">
-                      ${quote.buy}
+                      {formatLandingPrice(rate.buy, rate.quote)}
                     </span>
                   </div>
                   <div className="text-right">
@@ -388,9 +429,13 @@ export default function LandingPage() {
                       Venta
                     </span>
                     <span className="text-base sm:text-lg font-black text-brand">
-                      ${quote.sell}
+                      {formatLandingPrice(rate.sell, rate.quote)}
                     </span>
                   </div>
+                </div>
+                <div className="mt-2.5 pt-2 border-t border-line/60 flex items-center justify-between text-[10px] text-muted">
+                  <span>Fuente: {rate.source}</span>
+                  {rate.stale && <span className="text-amber-600 font-semibold">Caché previa</span>}
                 </div>
               </div>
             ))}

@@ -6,7 +6,6 @@ import { AppLayout } from "../components/layout/AppLayout";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { QuotesPanel } from "../components/dashboard/QuotesPanel";
-import { quotesMock } from "../mocks/quotesMock";
 import { apiFetch } from "../services/api";
 import { getWallet, type WalletBalance } from "../services/wallet";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
@@ -331,7 +330,7 @@ export default function DashboardPage() {
         </section>
 
         {/* Panel de Cotizaciones de Referencia */}
-        <QuotesPanel quotes={quotesMock} />
+        <QuotesPanel />
 
         {/* Modal para Recarga de Dinero Simulado */}
         {showReloadModal && (
