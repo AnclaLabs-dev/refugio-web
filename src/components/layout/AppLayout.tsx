@@ -1,12 +1,14 @@
-import type { ReactNode } from "react";
-import { NavLink } from "react-router-dom";
+import { useState, type ReactNode } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
 
 import { Button } from "../ui/Button";
+import { RefugioLogo } from "../ui/RefugioLogo";
+import { useAuth } from "../../context/AuthContext";
 
 interface AppLayoutProps {
   children: ReactNode;
-  userName: string;
-  onLogout: () => void;
+  userName?: string;
+  onLogout?: () => void;
   loggingOut?: boolean;
   logoutError?: string;
 }
@@ -20,21 +22,26 @@ type NavigationIconName =
 
 interface NavigationItem {
   label: string;
+  to: string;
   icon: NavigationIconName;
 }
 
-const upcomingSections: NavigationItem[] = [
-  { label: "Comprar / Vender", icon: "operate" },
-  { label: "Intercambiar", icon: "operate" },
-  { label: "Movimientos", icon: "movements" },
-  { label: "Metas de ahorro", icon: "goals" },
-  { label: "Asistente", icon: "assistant" },
+const desktopNavigationItems: NavigationItem[] = [
+  { label: "Inicio", to: "/dashboard", icon: "home" },
+  { label: "Comprar / Vender", to: "/trade", icon: "operate" },
+  { label: "Intercambiar", to: "/swap", icon: "operate" },
+  { label: "Movimientos", to: "/movements", icon: "movements" },
+  { label: "Metas de ahorro", to: "/goals", icon: "goals" },
+  { label: "Asistente", to: "/assistant", icon: "assistant" },
 ];
 
-const mobileUpcomingSections: NavigationItem[] = [
-  { label: "Operar", icon: "operate" },
-  { label: "Movimientos", icon: "movements" },
-  { label: "Asistente", icon: "assistant" },
+const mobileNavigationItems: NavigationItem[] = [
+  { label: "Inicio", to: "/dashboard", icon: "home" },
+  { label: "Operar", to: "/trade", icon: "operate" },
+  { label: "Swap", to: "/swap", icon: "operate" },
+  { label: "Movimientos", to: "/movements", icon: "movements" },
+  { label: "Metas", to: "/goals", icon: "goals" },
+  { label: "Asistente", to: "/assistant", icon: "assistant" },
 ];
 
 function NavigationIcon({ name }: { name: NavigationIconName }) {
@@ -88,16 +95,6 @@ function NavigationIcon({ name }: { name: NavigationIconName }) {
   );
 }
 
-function DevelopmentIndicator() {
-  return (
-    <span aria-hidden="true" className="shrink-0 text-xs">
-      🚧
-    </span>
-  );
-}
-
-import { RefugioLogo } from "../ui/RefugioLogo";
-
 function Brand() {
   return (
     <RefugioLogo to="/dashboard" size="sm" textClassName="text-2xl font-extrabold" />
@@ -110,40 +107,24 @@ function DesktopNavigation() {
       aria-label="Navegación principal"
       className="grid min-w-0 grid-cols-1 gap-1"
     >
-      <NavLink
-        to="/dashboard"
-        end
-        className={({ isActive }) =>
-          [
-            "flex min-h-11 min-w-0 items-center gap-3 rounded-xl",
-            "px-3 py-2 text-sm font-semibold",
-            isActive
-              ? "bg-brand-soft text-brand"
-              : "text-ink hover:bg-surface-soft",
-          ].join(" ")
-        }
-      >
-        <NavigationIcon name="home" />
-        <span>Inicio</span>
-      </NavLink>
-
-      {upcomingSections.map((section) => (
-        <button
-          key={section.label}
-          type="button"
-          disabled
-          aria-label={`${section.label}, en desarrollo`}
-          title={`${section.label}: en desarrollo`}
-          className="flex min-h-11 min-w-0 items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-muted"
+      {desktopNavigationItems.map((item) => (
+        <NavLink
+          key={item.to}
+          to={item.to}
+          end={item.to === "/dashboard"}
+          className={({ isActive }) =>
+            [
+              "flex min-h-11 min-w-0 items-center gap-3 rounded-xl",
+              "px-3 py-2 text-sm font-semibold transition-colors",
+              isActive
+                ? "bg-brand-soft text-brand font-bold"
+                : "text-ink hover:bg-surface-soft",
+            ].join(" ")
+          }
         >
-          <NavigationIcon name={section.icon} />
-
-          <span className="min-w-0 flex-1 wrap-break-word">
-            {section.label}
-          </span>
-
-          <DevelopmentIndicator />
-        </button>
+          <NavigationIcon name={item.icon} />
+          <span className="min-w-0 flex-1 truncate">{item.label}</span>
+        </NavLink>
       ))}
     </nav>
   );
@@ -155,58 +136,37 @@ function MobileNavigation() {
       aria-label="Navegación principal"
       className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_20px_rgba(0,0,0,0.04)] backdrop-blur-md lg:hidden"
     >
-      <div className="mx-auto grid max-w-lg grid-cols-4 gap-1 px-2 py-2">
-        <NavLink
-          to="/dashboard"
-          end
-          className={({ isActive }) =>
-            [
-              "relative flex min-h-14 min-w-0 flex-col items-center",
-              "justify-center gap-1 rounded-lg px-1 py-2",
-              "text-[11px] font-semibold",
-              isActive
-                ? "bg-brand-soft text-brand"
-                : "text-muted hover:bg-surface-soft",
-            ].join(" ")
-          }
-        >
-          {({ isActive }) => (
-            <>
-              <NavigationIcon name="home" />
-              <span>Inicio</span>
-
-              {isActive && (
-                <span
-                  aria-hidden="true"
-                  className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-brand"
-                />
-              )}
-            </>
-          )}
-        </NavLink>
-
-        {mobileUpcomingSections.map((section) => (
-          <button
-            key={section.label}
-            type="button"
-            disabled
-            aria-label={`${section.label}, en desarrollo`}
-            title={`${section.label}: en desarrollo`}
-            className="flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-lg px-1 py-2 text-[11px] font-medium text-muted"
+      <div className="mx-auto grid max-w-lg grid-cols-6 gap-0.5 px-1 py-1.5">
+        {mobileNavigationItems.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.to === "/dashboard"}
+            className={({ isActive }) =>
+              [
+                "relative flex min-h-13 min-w-0 flex-col items-center",
+                "justify-center gap-1 rounded-lg px-0.5 py-1.5",
+                "text-[10px] font-semibold transition-colors",
+                isActive
+                  ? "bg-brand-soft text-brand font-bold"
+                  : "text-muted hover:bg-surface-soft",
+              ].join(" ")
+            }
           >
-            <span className="relative inline-flex">
-              <NavigationIcon name={section.icon} />
+            {({ isActive }) => (
+              <>
+                <NavigationIcon name={item.icon} />
+                <span className="truncate max-w-full text-center">{item.label}</span>
 
-              <span
-                aria-hidden="true"
-                className="absolute -right-2 -top-1 text-[9px]"
-              >
-                🚧
-              </span>
-            </span>
-
-            <span>{section.label}</span>
-          </button>
+                {isActive && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-brand"
+                  />
+                )}
+              </>
+            )}
+          </NavLink>
         ))}
       </div>
     </nav>
@@ -215,11 +175,42 @@ function MobileNavigation() {
 
 export function AppLayout({
   children,
-  userName,
-  onLogout,
-  loggingOut = false,
-  logoutError,
+  userName: propUserName,
+  onLogout: propOnLogout,
+  loggingOut: propLoggingOut,
+  logoutError: propLogoutError,
 }: AppLayoutProps) {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [internalLoggingOut, setInternalLoggingOut] = useState(false);
+  const [internalLogoutError, setInternalLogoutError] = useState("");
+
+  const userName =
+    propUserName ?? (user?.displayName || user?.email || "Usuario");
+  const loggingOut = propLoggingOut ?? internalLoggingOut;
+  const logoutError = propLogoutError ?? internalLogoutError;
+
+  const handleLogout = async () => {
+    if (propOnLogout) {
+      propOnLogout();
+      return;
+    }
+
+    if (internalLoggingOut) return;
+
+    setInternalLoggingOut(true);
+    setInternalLogoutError("");
+
+    try {
+      await logout();
+      navigate("/login", { replace: true });
+    } catch {
+      setInternalLogoutError("No pudimos cerrar sesión. Intentá nuevamente.");
+    } finally {
+      setInternalLoggingOut(false);
+    }
+  };
+
   return (
     <div className="min-h-svh bg-page text-ink">
       <a
@@ -280,7 +271,9 @@ export function AppLayout({
 
                 <Button
                   variant="ghost"
-                  onClick={onLogout}
+                  onClick={() => {
+                    void handleLogout();
+                  }}
                   loading={loggingOut}
                   loadingText="Saliendo…"
                   className="shrink-0 text-sm"

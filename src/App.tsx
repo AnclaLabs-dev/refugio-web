@@ -8,6 +8,11 @@ const LandingPage = lazy(() => import("./pages/LandingPage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/RegisterPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const TradePage = lazy(() => import("./pages/TradePage"));
+const SwapPage = lazy(() => import("./pages/SwapPage"));
+const MovementsPage = lazy(() => import("./pages/MovementsPage"));
+const GoalsPage = lazy(() => import("./pages/GoalsPage"));
+const AssistantPage = lazy(() => import("./pages/AssistantPage"));
 
 function PageLoader() {
   return (
@@ -33,12 +38,52 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
 
-            {/* Ruta Protegida */}
+            {/* Rutas Protegidas */}
             <Route
               path="/dashboard"
               element={
                 <ProtectedRoute>
                   <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/trade"
+              element={
+                <ProtectedRoute>
+                  <TradePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/swap"
+              element={
+                <ProtectedRoute>
+                  <SwapPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/movements"
+              element={
+                <ProtectedRoute>
+                  <MovementsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/goals"
+              element={
+                <ProtectedRoute>
+                  <GoalsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/assistant"
+              element={
+                <ProtectedRoute>
+                  <AssistantPage />
                 </ProtectedRoute>
               }
             />
