@@ -5,7 +5,7 @@ export interface UserAvatarProps {
   className?: string;
 }
 
-export function getInitials(
+function getInitials(
   name?: string | null,
   email?: string | null
 ): string {
