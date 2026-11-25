@@ -2,7 +2,6 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { AuthLayout } from "../components/auth/AuthLayout";
-import { SimulationBadge } from "../components/auth/SimulationBadge";
 import { Input } from "../components/ui/Input";
 import { Button } from "../components/ui/Button";
 import { getAuthErrorMessage } from "../services/authErrors";
@@ -79,7 +78,7 @@ export default function RegisterPage() {
   }
 
   if (touched.terms && !termsAccepted) {
-    errors.terms = "Debés aceptar el aviso de simulación para continuar.";
+    errors.terms = "Debés aceptar los términos para continuar.";
   }
 
   const strength = getPasswordStrength(password);
@@ -111,7 +110,7 @@ export default function RegisterPage() {
         replace: true,
         state: {
           registeredEmail: email.trim(),
-          successMessage: "¡Cuenta creada con éxito! Por favor iniciá sesión para comenzar a simular.",
+          successMessage: "Cuenta creada correctamente. Iniciá sesión con tus credenciales.",
         },
       });
     } catch (err: unknown) {
@@ -129,24 +128,21 @@ export default function RegisterPage() {
     <AuthLayout
       heroHeadline={
         <>
-          Empezá a<br />
-          practicar<br />
-          hoy.
+          Tu ahorro<br />
+          empieza<br />
+          acá.
         </>
       }
-      heroSubtitle="Creá tu cuenta de simulación en segundos y accedé a saldo ficticio para comenzar."
+      heroSubtitle="Creá tu cuenta en Refugio y empezá a proteger tus pesos en monedas duras."
     >
       <div className="w-full">
-        {/* Badge indicador de simulación */}
-        <SimulationBadge className="mb-4" />
-
         {/* Título y subtítulo */}
         <div className="mb-6">
           <h2 className="text-2xl sm:text-[1.75rem] font-bold text-ink tracking-tight">
             Creá tu cuenta
           </h2>
           <p className="text-sm text-muted mt-1">
-            Completá tus datos para empezar a simular sin riesgo
+            Ingresá tus datos para acceder a tu billetera
           </p>
         </div>
 
@@ -307,7 +303,7 @@ export default function RegisterPage() {
             }
           />
 
-          {/* Checkbox de Simulación y Términos */}
+          {/* Checkbox de Términos y Saldo de Demostración */}
           <div className="pt-2">
             <label className="flex items-start gap-2.5 text-xs text-muted cursor-pointer select-none">
               <input
@@ -318,7 +314,7 @@ export default function RegisterPage() {
                 className="mt-0.5 rounded border-line text-brand focus:ring-brand/30 h-4 w-4 shrink-0"
               />
               <span>
-                Comprendo que <strong className="text-ink">Refugio es un simulador educativo</strong> con saldos y operaciones ficticias, sin uso de dinero real ni validez bancaria.
+                Entiendo que <strong className="text-ink">Refugio opera con saldo de demostración</strong> y no utiliza dinero bancario real.
               </span>
             </label>
             {errors.terms && (
@@ -333,7 +329,7 @@ export default function RegisterPage() {
             loadingText="Creando tu cuenta…"
             className="w-full mt-3 !py-3 font-bold rounded-xl"
           >
-            Crear cuenta gratuita
+            Crear cuenta gratis
           </Button>
         </form>
 
