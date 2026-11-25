@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 
 import { Button } from "../ui/Button";
 import { RefugioLogo } from "../ui/RefugioLogo";
+import { UserAvatar } from "../ui/UserAvatar";
 import { useAuth } from "../../context/AuthContext";
 
 interface AppLayoutProps {
@@ -261,13 +262,28 @@ export function AppLayout({
                 Simulación · Sin dinero real
               </span>
 
-              <div className="flex min-w-0 items-center gap-3">
-                <span
-                  title={userName}
-                  className="hidden min-w-0 max-w-52 truncate text-sm text-muted sm:block"
+              <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                <NavLink
+                  to="/profile"
+                  title="Ver mi perfil"
+                  className={({ isActive }) =>
+                    [
+                      "group flex items-center gap-2 rounded-xl p-1 sm:px-2.5 sm:py-1.5 transition-colors",
+                      isActive
+                        ? "bg-brand-soft text-brand font-bold ring-1 ring-brand/30"
+                        : "hover:bg-surface-soft text-ink",
+                    ].join(" ")
+                  }
                 >
-                  Hola, {userName}
-                </span>
+                  <UserAvatar
+                    name={user?.displayName}
+                    email={user?.email}
+                    size="sm"
+                  />
+                  <span className="hidden min-w-0 max-w-44 truncate text-xs sm:text-sm font-semibold group-hover:text-brand transition-colors sm:inline-block">
+                    Hola, {userName}
+                  </span>
+                </NavLink>
 
                 <Button
                   variant="ghost"

@@ -13,6 +13,7 @@ const SwapPage = lazy(() => import("./pages/SwapPage"));
 const MovementsPage = lazy(() => import("./pages/MovementsPage"));
 const GoalsPage = lazy(() => import("./pages/GoalsPage"));
 const AssistantPage = lazy(() => import("./pages/AssistantPage"));
+const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 
 function PageLoader() {
   return (
@@ -84,6 +85,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <AssistantPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
                 </ProtectedRoute>
               }
             />
