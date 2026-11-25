@@ -1,69 +1,31 @@
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext";
 import { AppLayout } from "../components/layout/AppLayout";
+import { Button } from "../components/ui/Button";
+import { Input } from "../components/ui/Input";
 import { QuotesPanel } from "../components/dashboard/QuotesPanel";
 import { quotesMock } from "../mocks/quotesMock";
 import { apiFetch } from "../services/api";
-import { Button } from "../components/ui/Button";
-import { Input } from "../components/ui/Input";
+import { getWallet, type WalletBalance } from "../services/wallet";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
-interface ApiBalance {
-  currency_code: string;
-  name: string;
-  type: "fiat" | "crypto";
-  decimals: number;
-  amount: string;
-  updated_at?: string;
-}
+type WalletState =
+  | { status: "loading" }
+  | { status: "success"; balances: WalletBalance[] }
+  | { status: "error"; message: string };
 
-interface WalletResponse {
-  wallet: {
-    id: string;
-    balances: ApiBalance[];
-  };
-}
+// Agrupa los dígitos sin convertir el importe a Number.
+function formatBalance(amount: string): string {
+  const match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(amount);
 
-const fallbackBalances: ApiBalance[] = [
-  {
-    currency_code: "ARS",
-    name: "Peso argentino",
-    type: "fiat",
-    amount: "250000.00",
-    decimals: 2,
-  },
-  {
-    currency_code: "USD",
-    name: "Dólar estadounidense",
-    type: "fiat",
-    amount: "500.00",
-    decimals: 2,
-  },
-  {
-    currency_code: "USDT",
-    name: "Tether",
-    type: "crypto",
-    amount: "200.00",
-    decimals: 2,
-  },
-  {
-    currency_code: "BTC",
-    name: "Bitcoin",
-    type: "crypto",
-    amount: "0.00500000",
-    decimals: 8,
-  },
-];
+  if (!match) return amount;
 
-function formatBalance(amountStr: string, decimals: number) {
-  const num = parseFloat(amountStr);
-  if (isNaN(num)) return "0,00";
-  return new Intl.NumberFormat("es-AR", {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  }).format(num);
+  const [, sign, integer, fraction] = match;
+  const grouped = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+  return `${sign}${grouped}${fraction !== undefined ? `,${fraction}` : ""}`;
 }
 
 function WalletIcon() {
@@ -90,14 +52,15 @@ function WalletIcon() {
 export default function DashboardPage() {
   useDocumentTitle("Mi Billetera | Refugio");
 
-  const { user, logout } = useAuth();
+  const { user, firebaseUser, logout } = useAuth();
   const navigate = useNavigate();
 
   const [loggingOut, setLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState("");
-
-  const [balances, setBalances] = useState<ApiBalance[]>(fallbackBalances);
-  const [loadingBalances, setLoadingBalances] = useState(true);
+  const [walletState, setWalletState] = useState<WalletState>({
+    status: "loading",
+  });
+  const [attempt, setAttempt] = useState(0);
 
   // Modal de Recarga Simulada
   const [showReloadModal, setShowReloadModal] = useState(false);
@@ -109,47 +72,36 @@ export default function DashboardPage() {
   const userName = user?.displayName || user?.email || "Usuario";
 
   useEffect(() => {
-    let ignore = false;
+    if (!firebaseUser) return;
 
-    apiFetch<WalletResponse>("/wallet")
-      .then((res) => {
-        if (
-          !ignore &&
-          res?.wallet?.balances &&
-          res.wallet.balances.length > 0
-        ) {
-          setBalances(res.wallet.balances);
-        }
-      })
-      .catch((err) => {
-        if (!ignore) {
-          console.warn(
-            "No se pudo obtener la billetera desde el backend, usando saldos locales:",
-            err,
-          );
-        }
-      })
-      .finally(() => {
-        if (!ignore) {
-          setLoadingBalances(false);
-        }
-      });
+    const controller = new AbortController();
 
-    return () => {
-      ignore = true;
-    };
-  }, []);
+    async function loadWallet() {
+      setWalletState({ status: "loading" });
 
-  const refreshWallet = useCallback(async () => {
-    try {
-      const res = await apiFetch<WalletResponse>("/wallet");
-      if (res?.wallet?.balances && res.wallet.balances.length > 0) {
-        setBalances(res.wallet.balances);
+      try {
+        const data = await getWallet(controller.signal);
+
+        if (!controller.signal.aborted) {
+          setWalletState({
+            status: "success",
+            balances: data.wallet.balances,
+          });
+        }
+      } catch {
+        if (!controller.signal.aborted) {
+          setWalletState({
+            status: "error",
+            message: "No pudimos cargar tus balances. Intentá nuevamente.",
+          });
+        }
       }
-    } catch (err) {
-      console.warn("Error al refrescar billetera:", err);
     }
-  }, []);
+
+    void loadWallet();
+
+    return () => controller.abort();
+  }, [firebaseUser, attempt]);
 
   const handleLogout = async () => {
     if (loggingOut) return;
@@ -186,26 +138,30 @@ export default function DashboardPage() {
       });
 
       // Refrescar desde backend
-      await refreshWallet();
+      setAttempt((current) => current + 1);
       setReloadNotice(
-        `¡Recargaste $${amountNum.toLocaleString("es-AR")} ${reloadCurrency} con éxito!`,
+        `¡Recargaste $${amountNum.toLocaleString("es-AR")} ${reloadCurrency} con éxito!`
       );
     } catch {
       // Actualización optimista en Front si el backend aún no tiene el endpoint
-      setBalances((prev) =>
-        prev.map((b) => {
-          if (b.currency_code === reloadCurrency) {
-            const current = parseFloat(b.amount) || 0;
-            return {
-              ...b,
-              amount: (current + amountNum).toFixed(b.decimals),
-            };
-          }
-          return b;
-        }),
-      );
+      setWalletState((prev) => {
+        if (prev.status !== "success") return prev;
+        return {
+          ...prev,
+          balances: prev.balances.map((b) => {
+            if (b.currency_code === reloadCurrency) {
+              const current = parseFloat(b.amount) || 0;
+              return {
+                ...b,
+                amount: (current + amountNum).toFixed(b.decimals),
+              };
+            }
+            return b;
+          }),
+        };
+      });
       setReloadNotice(
-        `¡Saldo simulado acreditado! Se sumaron ${amountNum.toLocaleString("es-AR")} ${reloadCurrency} de práctica a tu billetera.`,
+        `¡Saldo simulado acreditado! Se sumaron ${amountNum.toLocaleString("es-AR")} ${reloadCurrency} de práctica a tu billetera.`
       );
     } finally {
       setReloading(false);
@@ -259,7 +215,6 @@ export default function DashboardPage() {
           aria-labelledby="wallet-summary-title"
           className="relative mb-5 overflow-hidden rounded-2xl bg-[#95877D] px-5 py-6 text-white shadow-sm sm:px-6"
         >
-          {/* Arco de Refugio como marca de agua */}
           <svg
             viewBox="0 0 100 120"
             fill="none"
@@ -287,21 +242,24 @@ export default function DashboardPage() {
             </h2>
 
             <p className="text-xs sm:text-sm leading-relaxed text-white/90 pt-0.5">
-              Todas tus monedas en un solo lugar con cotizaciones en vivo y
-              saldos de entrenamiento.
+              Todas tus monedas en un solo lugar con cotizaciones en vivo y saldos de entrenamiento.
             </p>
           </div>
         </section>
 
         {/* Sección de Balances */}
-        <section aria-labelledby="balances-title" className="mb-6">
+        <section
+          aria-labelledby="balances-title"
+          aria-busy={walletState.status === "loading"}
+          className="mb-6"
+        >
           <div className="mb-3 flex items-center justify-between gap-2">
             <h2 id="balances-title" className="text-sm font-bold text-ink">
               Tus balances
             </h2>
           </div>
 
-          {loadingBalances ? (
+          {walletState.status === "loading" && (
             <div className="grid min-w-0 grid-cols-2 gap-3 md:grid-cols-4">
               {[1, 2, 3, 4].map((i) => (
                 <div
@@ -313,39 +271,63 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
-          ) : (
-            <div className="grid min-w-0 grid-cols-2 gap-3 md:grid-cols-4">
-              {balances.map((balance) => (
-                <div
-                  key={balance.currency_code}
-                  role="group"
-                  aria-label={balance.name}
-                  className="min-w-0 rounded-xl border border-line bg-surface p-4 shadow-2xs hover:border-brand/40 transition-colors"
-                >
-                  <div className="mb-2 flex items-center justify-between gap-1.5">
-                    <div className="flex items-center gap-1.5">
-                      <WalletIcon />
-                      <h3 className="text-xs font-bold text-ink">
-                        {balance.currency_code}
-                      </h3>
-                    </div>
-                    <span className="text-[10px] uppercase font-bold text-muted">
-                      {balance.type}
-                    </span>
-                  </div>
+          )}
 
-                  <p className="wrap-anywhere text-base sm:text-lg font-black tracking-tight text-ink tabular-nums">
-                    <span className="sr-only">Saldo ficticio:</span>
-                    {formatBalance(balance.amount, balance.decimals)}
-                  </p>
+          {walletState.status === "error" && (
+            <div className="rounded-xl border border-line bg-surface p-4">
+              <p role="alert" className="mb-3 text-sm text-danger font-medium">
+                {walletState.message}
+              </p>
 
-                  <p className="text-[11px] text-muted truncate mt-0.5">
-                    {balance.name}
-                  </p>
-                </div>
-              ))}
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setAttempt((current) => current + 1);
+                }}
+              >
+                Reintentar
+              </Button>
             </div>
           )}
+
+          {walletState.status === "success" &&
+            (walletState.balances.length === 0 ? (
+              <p className="rounded-xl border border-line bg-surface p-4 text-sm text-muted">
+                Tu billetera todavía no tiene balances disponibles.
+              </p>
+            ) : (
+              <div className="grid min-w-0 grid-cols-2 gap-3 md:grid-cols-4">
+                {walletState.balances.map((balance) => (
+                  <div
+                    key={balance.currency_code}
+                    role="group"
+                    aria-label={balance.name}
+                    className="min-w-0 rounded-xl border border-line bg-surface p-4 shadow-2xs hover:border-brand/40 transition-colors"
+                  >
+                    <div className="mb-2 flex items-center justify-between gap-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <WalletIcon />
+                        <h3 className="text-xs font-bold text-ink">
+                          {balance.currency_code}
+                        </h3>
+                      </div>
+                      <span className="text-[10px] uppercase font-bold text-muted">
+                        {balance.type}
+                      </span>
+                    </div>
+
+                    <p className="wrap-anywhere text-base sm:text-lg font-black tracking-tight text-ink tabular-nums">
+                      <span className="sr-only">Saldo: </span>
+                      {formatBalance(balance.amount)}
+                    </p>
+
+                    <p className="text-[11px] text-muted truncate mt-0.5">
+                      {balance.name}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ))}
         </section>
 
         {/* Panel de Cotizaciones de Referencia */}
