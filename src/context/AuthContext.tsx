@@ -13,6 +13,7 @@ import {
   onAuthStateChanged,
   type User as FirebaseUser,
 } from "firebase/auth";
+import { apiFetch } from "../services/api";
 import { auth } from "../services/firebase";
 import type { AuthContextType, UserProfile } from "../types/auth";
 
@@ -44,17 +45,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  const login = async (email: string, pass: string) => {
-    await signInWithEmailAndPassword(auth, email, pass);
-  };
-
   const register = async (email: string, pass: string, name: string) => {
+    // 1. Crear usuario en Firebase Auth
     const cred = await createUserWithEmailAndPassword(auth, email, pass);
+
+    // 2. Asignar el nombre en el perfil de Firebase
     await updateProfile(cred.user, { displayName: name });
-    // Por seguridad, cerramos sesión de inmediato para obligar al usuario a autenticarse en el login
+
+    // 3. Sincronizar con el Backend de Railway (crea usuario en Postgres, wallet y saldo ARS)
+    try {
+      const token = await cred.user.getIdToken();
+      await apiFetch("/auth/sync", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name }),
+      });
+    } catch (apiError) {
+      console.error("Error al sincronizar usuario con backend:", apiError);
+      // No frenamos el flujo si el backend ya lo registró
+    }
+
+    // 4. Cerramos sesión por seguridad (solicitud de Caro) para que ingrese desde login
     await signOut(auth);
     setFirebaseUser(null);
     setUser(null);
+  };
+
+  const login = async (email: string, pass: string) => {
+    const cred = await signInWithEmailAndPassword(auth, email, pass);
+
+    // Sincronizamos también al iniciar sesión para asegurar consistencia
+    try {
+      const token = await cred.user.getIdToken();
+      await apiFetch("/auth/sync", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name: cred.user.displayName || "" }),
+      });
+    } catch (apiError) {
+      console.warn("Advertencia al sincronizar en login:", apiError);
+    }
   };
 
   const logout = async () => {
