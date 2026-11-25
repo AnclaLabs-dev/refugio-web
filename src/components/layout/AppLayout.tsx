@@ -96,32 +96,11 @@ function DevelopmentIndicator() {
   );
 }
 
+import { RefugioLogo } from "../ui/RefugioLogo";
+
 function Brand() {
   return (
-    <NavLink
-      to="/dashboard"
-      aria-label="Refugio, ir al inicio"
-      className="inline-flex min-h-11 items-center gap-2 text-ink"
-    >
-      <svg
-        viewBox="0 0 40 40"
-        width="32"
-        height="32"
-        fill="none"
-        aria-hidden="true"
-        className="shrink-0 text-brand"
-      >
-        <path
-          d="M7 34V20a13 13 0 0 1 26 0v14"
-          stroke="currentColor"
-          strokeWidth="6"
-        />
-      </svg>
-
-      <span className="text-2xl font-extrabold tracking-tight">
-        Refugio
-      </span>
-    </NavLink>
+    <RefugioLogo to="/dashboard" size="sm" textClassName="text-2xl font-extrabold" />
   );
 }
 

@@ -1,51 +1,26 @@
 import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { RefugioLogo } from "../ui/RefugioLogo";
 
 export function RefugioBrand({ className = "" }: { className?: string }) {
-  return (
-    <Link
-      to="/"
-      aria-label="Refugio, volver al inicio"
-      className={`inline-flex items-center gap-2.5 text-ink transition-opacity hover:opacity-90 ${className}`}
-    >
-      <svg
-        viewBox="0 0 40 40"
-        width="34"
-        height="34"
-        fill="none"
-        aria-hidden="true"
-        className="shrink-0 text-brand"
-      >
-        <path
-          d="M7 34V20a13 13 0 0 1 26 0v14"
-          stroke="currentColor"
-          strokeWidth="6"
-          strokeLinecap="round"
-        />
-      </svg>
-
-      <span className="text-2xl font-black tracking-tight text-ink">
-        Refugio
-      </span>
-    </Link>
-  );
+  return <RefugioLogo className={className} />;
 }
 
-export function BrandArchGraphic() {
+export function BrandArchGraphic({ className = "" }: { className?: string }) {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none select-none flex justify-center w-full overflow-hidden"
+      className={`pointer-events-none select-none flex justify-center w-full ${className}`}
     >
       <svg
-        viewBox="0 0 200 130"
+        viewBox="0 0 200 160"
         fill="none"
-        className="w-48 text-[#d8cebf]"
+        className="w-40 sm:w-44 lg:w-48 text-[#d8cebf]"
       >
         <path
-          d="M36 130 V72 C36 36.65 64.65 8 100 8 C135.35 8 164 36.65 164 72 V130"
+          d="M40 145 V78 a60 60 0 0 1 120 0 v67"
           stroke="currentColor"
-          strokeWidth="32"
+          strokeWidth="26"
+          strokeLinecap="round"
         />
       </svg>
     </div>
@@ -91,7 +66,7 @@ export function AuthLayout({
           </div>
 
           {/* Bottom: Gráfica del arco */}
-          <div className="-mb-8 lg:-mb-10 flex justify-center">
+          <div className="mt-auto pt-6 flex justify-center">
             <BrandArchGraphic />
           </div>
         </div>
