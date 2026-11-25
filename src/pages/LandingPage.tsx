@@ -2,10 +2,13 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { quotesMock } from "../mocks/quotesMock";
+import { RefugioLogo } from "../components/ui/RefugioLogo";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 export default function LandingPage() {
   const { user } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  useDocumentTitle("Refugio | Simulador Financiero y Billetera Virtual");
 
   return (
     <div className="min-h-screen bg-page text-ink selection:bg-brand selection:text-on-brand flex flex-col font-sans">
@@ -15,28 +18,7 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 backdrop-blur-md bg-page/90 border-b border-line/50 transition-all">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           {/* Brand Logo */}
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2.5 text-ink hover:opacity-90 transition-opacity"
-            aria-label="Refugio, ir a la página principal"
-          >
-            <svg
-              viewBox="0 0 40 40"
-              width="36"
-              height="36"
-              fill="none"
-              aria-hidden="true"
-              className="shrink-0 text-brand"
-            >
-              <path
-                d="M7 34V20a13 13 0 0 1 26 0v14"
-                stroke="currentColor"
-                strokeWidth="6"
-                strokeLinecap="round"
-              />
-            </svg>
-            <span className="text-2xl font-black tracking-tight">Refugio</span>
-          </Link>
+          <RefugioLogo to="/" size="md" />
 
           {/* Enlaces de Navegación (Desktop) */}
           <nav className="hidden md:flex items-center gap-8 text-sm font-semibold text-muted">
