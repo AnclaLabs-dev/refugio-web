@@ -6,6 +6,7 @@ export interface BackendUser {
   email: string;
   name: string | null;
   alias?: string | null;
+  alias_updated_at?: string | null;
   created_at: string;
 }
 
