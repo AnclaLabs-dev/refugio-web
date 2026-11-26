@@ -95,6 +95,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signOut(auth);
   };
 
+  const updateProfileName = async (name: string) => {
+    if (auth.currentUser) {
+      await updateProfile(auth.currentUser, { displayName: name });
+    }
+    setUser((prev) => (prev ? { ...prev, displayName: name } : null));
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -104,6 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         register,
         logout,
+        updateProfileName,
       }}
     >
       {children}

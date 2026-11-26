@@ -11,24 +11,31 @@ import { getMe, updateUserName, type BackendUser } from "../services/user";
 export default function ProfilePage() {
   useDocumentTitle("Mi Perfil | Refugio");
 
-  const { user, firebaseUser, logout } = useAuth();
+  const { user, firebaseUser, logout, updateProfileName } = useAuth();
   const navigate = useNavigate();
 
   const [backendUser, setBackendUser] = useState<BackendUser | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
 
-  const [copiedUid, setCopiedUid] = useState(false);
-  const [copiedDbId, setCopiedDbId] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState("");
 
-  // Edición de nombre conectada a PATCH /me
+  // Edición de nombre conectada a PATCH /me y AuthContext
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameInput, setNameInput] = useState("");
   const [savingName, setSavingName] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
   const [nameSuccess, setNameSuccess] = useState<string | null>(null);
+
+  // Alias para recargas a la billetera
+  const [alias, setAlias] = useState<string>("");
+  const [isEditingAlias, setIsEditingAlias] = useState(false);
+  const [aliasInput, setAliasInput] = useState("");
+  const [savingAlias, setSavingAlias] = useState(false);
+  const [aliasError, setAliasError] = useState<string | null>(null);
+  const [aliasSuccess, setAliasSuccess] = useState<string | null>(null);
+  const [copiedAlias, setCopiedAlias] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -42,10 +49,37 @@ export default function ProfilePage() {
         if (!controller.signal.aborted) {
           setBackendUser(data);
           setNameInput(data.name || "");
+
+          const uidKey = data.firebase_uid || user?.uid || "user";
+          const storedAlias = localStorage.getItem(`refugio_alias_${uidKey}`);
+          const defaultGen = (data.name || user?.displayName || user?.email?.split("@")[0] || "refugio")
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9]/g, ".")
+            .replace(/\.+/g, ".")
+            .replace(/^\.|\.$/g, "") + ".refugio";
+
+          const initialAlias = data.alias || storedAlias || defaultGen;
+          setAlias(initialAlias);
+          setAliasInput(initialAlias);
         }
       } catch {
         if (!controller.signal.aborted) {
           setProfileError("No pudimos consultar los datos del servidor. Mostrando información de sesión.");
+          const uidKey = user?.uid || "user";
+          const storedAlias = localStorage.getItem(`refugio_alias_${uidKey}`);
+          const defaultGen = (user?.displayName || user?.email?.split("@")[0] || "refugio")
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9]/g, ".")
+            .replace(/\.+/g, ".")
+            .replace(/^\.|\.$/g, "") + ".refugio";
+
+          const initialAlias = storedAlias || defaultGen;
+          setAlias(initialAlias);
+          setAliasInput(initialAlias);
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -57,12 +91,10 @@ export default function ProfilePage() {
     void fetchUserProfile();
 
     return () => controller.abort();
-  }, []);
+  }, [user?.uid, user?.displayName, user?.email]);
 
   const displayName = backendUser?.name || user?.displayName || "Usuario de Refugio";
   const email = backendUser?.email || user?.email || "Sin correo registrado";
-  const uid = backendUser?.firebase_uid || user?.uid || "—";
-  const dbId = backendUser?.id || "—";
 
   const rawCreationDate = backendUser?.created_at || firebaseUser?.metadata.creationTime;
   const creationDate = rawCreationDate
@@ -73,19 +105,45 @@ export default function ProfilePage() {
       })
     : "Reciente";
 
-  const handleCopyText = async (text: string, type: "uid" | "dbId") => {
-    if (!text || text === "—") return;
+  const handleCopyAlias = async () => {
+    if (!alias) return;
     try {
-      await navigator.clipboard.writeText(text);
-      if (type === "uid") {
-        setCopiedUid(true);
-        setTimeout(() => setCopiedUid(false), 2000);
-      } else {
-        setCopiedDbId(true);
-        setTimeout(() => setCopiedDbId(false), 2000);
-      }
+      await navigator.clipboard.writeText(alias);
+      setCopiedAlias(true);
+      setTimeout(() => setCopiedAlias(false), 2000);
     } catch {
       // Fallback silencioso si el portapapeles está bloqueado
+    }
+  };
+
+  const handleSaveAlias = (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = aliasInput.trim().toLowerCase();
+    const aliasRegex = /^[a-z0-9]+(\.[a-z0-9]+)*$/;
+    if (clean.length < 3 || clean.length > 30) {
+      setAliasError("El alias debe tener entre 3 y 30 caracteres");
+      return;
+    }
+    if (!aliasRegex.test(clean)) {
+      setAliasError("El alias solo puede tener letras minúsculas, números y puntos (sin puntos consecutivos)");
+      return;
+    }
+
+    setSavingAlias(true);
+    setAliasError(null);
+    setAliasSuccess(null);
+
+    try {
+      const uidKey = backendUser?.firebase_uid || user?.uid || "user";
+      localStorage.setItem(`refugio_alias_${uidKey}`, clean);
+      setAlias(clean);
+      setAliasSuccess("¡Alias actualizado correctamente!");
+      setIsEditingAlias(false);
+      setTimeout(() => setAliasSuccess(null), 4000);
+    } catch {
+      setAliasError("No pudimos guardar el alias. Intentá nuevamente.");
+    } finally {
+      setSavingAlias(false);
     }
   };
 
@@ -104,7 +162,8 @@ export default function ProfilePage() {
     try {
       const updated = await updateUserName(trimmed);
       setBackendUser(updated);
-      setNameSuccess("¡Nombre actualizado correctamente en la base de datos!");
+      await updateProfileName(trimmed);
+      setNameSuccess("¡Nombre actualizado correctamente!");
       setIsEditingName(false);
       setTimeout(() => setNameSuccess(null), 4000);
     } catch (err) {
@@ -165,6 +224,18 @@ export default function ProfilePage() {
             <button
               type="button"
               onClick={() => setNameSuccess(null)}
+              className="text-emerald-700 hover:text-emerald-900 font-bold ml-2"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+        {aliasSuccess && (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3.5 text-xs font-semibold text-emerald-800 flex items-center justify-between">
+            <span>✓ {aliasSuccess}</span>
+            <button
+              type="button"
+              onClick={() => setAliasSuccess(null)}
               className="text-emerald-700 hover:text-emerald-900 font-bold ml-2"
             >
               ✕
@@ -328,46 +399,95 @@ export default function ProfilePage() {
               </p>
             </div>
 
-            {/* Campo: Identificador de Usuario (Firebase UID) */}
-            <div className="space-y-1.5 rounded-xl border border-line bg-page/50 p-3.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-muted">
-                  Identificador de autenticación (Firebase UID)
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    void handleCopyText(uid, "uid");
-                  }}
-                  className="text-xs font-bold text-brand hover:underline cursor-pointer"
-                >
-                  {copiedUid ? "✓ ¡Copiado!" : "Copiar UID"}
-                </button>
+            {/* Campo: Alias de la cuenta (para recargas a la billetera) */}
+            <div className="space-y-2 rounded-xl border border-brand/20 bg-brand-soft/30 p-4 sm:col-span-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-ink">
+                    Alias de tu Billetera
+                  </span>
+                  <span className="rounded-md bg-brand-soft px-2 py-0.5 text-[10px] font-bold text-brand">
+                    Para recibir recargas
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void handleCopyAlias();
+                    }}
+                    className="text-xs font-bold text-brand hover:underline cursor-pointer"
+                  >
+                    {copiedAlias ? "✓ ¡Copiado!" : "Copiar alias"}
+                  </button>
+                  {!isEditingAlias && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAliasInput(alias);
+                        setIsEditingAlias(true);
+                        setAliasError(null);
+                      }}
+                      className="text-xs font-bold text-ink hover:text-brand hover:underline cursor-pointer"
+                    >
+                      Editar alias
+                    </button>
+                  )}
+                </div>
               </div>
-              <p className="font-mono text-xs text-ink/80 truncate">
-                {uid}
-              </p>
-            </div>
 
-            {/* Campo: ID interno en base de datos PostgreSQL */}
-            <div className="space-y-1.5 rounded-xl border border-line bg-page/50 p-3.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-muted">
-                  ID de usuario en Base de Datos (UUID)
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    void handleCopyText(dbId, "dbId");
-                  }}
-                  className="text-xs font-bold text-brand hover:underline cursor-pointer"
-                >
-                  {copiedDbId ? "✓ ¡Copiado!" : "Copiar ID"}
-                </button>
-              </div>
-              <p className="font-mono text-xs text-ink/80 truncate">
-                {dbId}
-              </p>
+              {isEditingAlias ? (
+                <form onSubmit={handleSaveAlias} className="space-y-3 pt-1">
+                  <Input
+                    label="Nuevo alias"
+                    type="text"
+                    value={aliasInput}
+                    onChange={(e) => setAliasInput(e.target.value)}
+                    maxLength={30}
+                    placeholder="ej. gabi.refugio"
+                    required
+                    disabled={savingAlias}
+                  />
+                  <p className="text-[11px] text-muted">
+                    De 3 a 30 caracteres. Solo letras minúsculas, números y puntos (ej. usuario.refugio).
+                  </p>
+                  {aliasError && (
+                    <p className="text-xs font-semibold text-danger">{aliasError}</p>
+                  )}
+                  <div className="flex items-center gap-2 pt-1">
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      className="!py-1.5 !px-3 text-xs font-bold rounded-lg"
+                      loading={savingAlias}
+                      loadingText="Guardando…"
+                    >
+                      Guardar alias
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="!py-1.5 !px-3 text-xs font-semibold rounded-lg"
+                      disabled={savingAlias}
+                      onClick={() => {
+                        setIsEditingAlias(false);
+                        setAliasError(null);
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </form>
+              ) : (
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                  <span className="font-mono text-base font-extrabold text-brand tracking-wide">
+                    {alias || "Sin alias configurado"}
+                  </span>
+                  <p className="text-xs text-muted">
+                    Utilizá este alias para simular recargas de fondos fiduciarios en tu cuenta.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Campo: Tipo de entorno */}

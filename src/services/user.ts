@@ -5,6 +5,7 @@ export interface BackendUser {
   firebase_uid: string;
   email: string;
   name: string | null;
+  alias?: string | null;
   created_at: string;
 }
 
