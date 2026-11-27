@@ -14,6 +14,8 @@ export function getAuthErrorMessage(errorCode: string): string {
       return "Error de conexión. Verificá tu acceso a internet.";
     case "auth/too-many-requests":
       return "Demasiados intentos fallidos. Intentá nuevamente más tarde.";
+    case "auth/operation-not-allowed":
+      return "El proveedor de inicio de sesión con Google no está habilitado en la consola de Firebase.";
     case "auth/popup-closed-by-user":
       return "Inicio de sesión con Google cancelado.";
     case "auth/popup-blocked":
