@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { AuthLayout } from "../components/auth/AuthLayout";
+import { GoogleButton } from "../components/auth/GoogleButton";
 import { Input } from "../components/ui/Input";
 import { Button } from "../components/ui/Button";
 import { getAuthErrorMessage } from "../services/authErrors";
@@ -38,9 +39,30 @@ export default function RegisterPage() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
-  const { register } = useAuth();
+  const { register, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
+
+  const handleGoogleSignUp = async () => {
+    setGeneralError(null);
+    setGoogleLoading(true);
+    try {
+      await loginWithGoogle();
+      navigate("/dashboard", { replace: true });
+    } catch (err: unknown) {
+      if (err && typeof err === "object" && "code" in err) {
+        const code = (err as { code: string }).code;
+        if (code !== "auth/popup-closed-by-user") {
+          setGeneralError(getAuthErrorMessage(code));
+        }
+      } else {
+        setGeneralError("No se pudo registrar con Google. Por favor intentá nuevamente.");
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   const handleBlur = (field: string) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
@@ -328,10 +350,33 @@ export default function RegisterPage() {
             loading={loading}
             loadingText="Creando tu cuenta…"
             className="w-full mt-3 !py-3 font-bold rounded-xl"
+            disabled={googleLoading}
           >
             Crear cuenta gratis
           </Button>
         </form>
+
+        {/* Separador */}
+        <div className="relative my-5">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-line" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-surface px-3 text-muted font-semibold tracking-wider">
+              o registrarte con
+            </span>
+          </div>
+        </div>
+
+        {/* Botón de Google */}
+        <GoogleButton
+          onClick={() => {
+            void handleGoogleSignUp();
+          }}
+          loading={googleLoading}
+          disabled={loading}
+          text="Registrarse con Google"
+        />
 
         <p className="text-center text-sm text-muted mt-6">
           ¿Ya tenés una cuenta?{" "}

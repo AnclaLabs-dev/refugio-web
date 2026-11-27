@@ -98,7 +98,11 @@ function NavigationIcon({ name }: { name: NavigationIconName }) {
 
 function Brand() {
   return (
-    <RefugioLogo to="/dashboard" size="sm" textClassName="text-2xl font-extrabold" />
+    <RefugioLogo
+      to="/dashboard"
+      size="sm"
+      textClassName="text-2xl font-extrabold"
+    />
   );
 }
 
@@ -116,15 +120,17 @@ function DesktopNavigation() {
           className={({ isActive }) =>
             [
               "flex min-h-11 min-w-0 items-center gap-3 rounded-xl",
-              "px-3 py-2 text-sm font-semibold transition-colors",
+              "px-3 py-2 text-sm transition-colors",
               isActive
-                ? "bg-brand-soft text-brand font-bold"
-                : "text-ink hover:bg-surface-soft",
+                ? "bg-brand-soft font-bold text-brand"
+                : "font-semibold text-ink hover:bg-surface-soft",
             ].join(" ")
           }
         >
           <NavigationIcon name={item.icon} />
-          <span className="min-w-0 flex-1 truncate">{item.label}</span>
+          <span className="min-w-0 flex-1 truncate">
+            {item.label}
+          </span>
         </NavLink>
       ))}
     </nav>
@@ -147,17 +153,20 @@ function MobileNavigation() {
               [
                 "relative flex min-h-13 min-w-0 flex-col items-center",
                 "justify-center gap-1 rounded-lg px-0.5 py-1.5",
-                "text-[10px] font-semibold transition-colors",
+                "text-[10px] transition-colors",
                 isActive
-                  ? "bg-brand-soft text-brand font-bold"
-                  : "text-muted hover:bg-surface-soft",
+                  ? "bg-brand-soft font-bold text-brand"
+                  : "font-semibold text-muted hover:bg-surface-soft",
               ].join(" ")
             }
           >
             {({ isActive }) => (
               <>
                 <NavigationIcon name={item.icon} />
-                <span className="truncate max-w-full text-center">{item.label}</span>
+
+                <span className="max-w-full truncate text-center">
+                  {item.label}
+                </span>
 
                 {isActive && (
                   <span
@@ -183,11 +192,13 @@ export function AppLayout({
 }: AppLayoutProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
   const [internalLoggingOut, setInternalLoggingOut] = useState(false);
   const [internalLogoutError, setInternalLogoutError] = useState("");
 
   const userName =
     propUserName ?? (user?.displayName || user?.email || "Usuario");
+
   const loggingOut = propLoggingOut ?? internalLoggingOut;
   const logoutError = propLogoutError ?? internalLogoutError;
 
@@ -206,7 +217,9 @@ export function AppLayout({
       await logout();
       navigate("/login", { replace: true });
     } catch {
-      setInternalLogoutError("No pudimos cerrar sesión. Intentá nuevamente.");
+      setInternalLogoutError(
+        "No pudimos cerrar sesión. Intentá nuevamente.",
+      );
     } finally {
       setInternalLoggingOut(false);
     }
@@ -237,13 +250,14 @@ export function AppLayout({
 
       <div className="min-w-0 lg:pl-64">
         <header className="border-b border-line bg-surface/80">
-          <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="lg:hidden">
+          <div className="mx-auto max-w-7xl px-3 py-3 sm:px-6 lg:px-8">
+            <div className="flex min-w-0 items-center justify-between gap-2">
+              <div className="shrink-0 lg:hidden">
                 <Brand />
               </div>
 
-              <span className="inline-flex items-center gap-2 rounded-lg bg-surface-soft px-3 py-2 text-xs font-semibold text-ink">
+              {/* Se oculta en móvil para compactar el encabezado. */}
+              <span className="hidden items-center gap-2 rounded-lg bg-surface-soft px-3 py-2 text-xs font-semibold text-ink lg:inline-flex">
                 <svg
                   viewBox="0 0 24 24"
                   width="15"
@@ -262,16 +276,19 @@ export function AppLayout({
                 Simulación · Sin dinero real
               </span>
 
-              <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+              <div className="ml-auto flex min-w-0 items-center gap-1 sm:gap-3">
                 <NavLink
                   to="/profile"
+                  aria-label={`Ver perfil de ${userName}`}
                   title="Ver mi perfil"
                   className={({ isActive }) =>
                     [
-                      "group flex items-center gap-2 rounded-xl p-1 sm:px-2.5 sm:py-1.5 transition-colors",
+                      "group flex min-h-11 min-w-11 shrink-0",
+                      "items-center justify-center gap-2 rounded-xl",
+                      "p-1 transition-colors sm:px-2.5 sm:py-1.5",
                       isActive
-                        ? "bg-brand-soft text-brand font-bold ring-1 ring-brand/30"
-                        : "hover:bg-surface-soft text-ink",
+                        ? "bg-brand-soft font-bold text-brand ring-1 ring-brand/30"
+                        : "text-ink hover:bg-surface-soft",
                     ].join(" ")
                   }
                 >
@@ -280,7 +297,8 @@ export function AppLayout({
                     email={user?.email}
                     size="sm"
                   />
-                  <span className="hidden min-w-0 max-w-44 truncate text-xs sm:text-sm font-semibold group-hover:text-brand transition-colors sm:inline-block">
+
+                  <span className="hidden min-w-0 max-w-44 truncate text-sm font-semibold transition-colors group-hover:text-brand md:inline-block">
                     Hola, {userName}
                   </span>
                 </NavLink>
@@ -294,7 +312,8 @@ export function AppLayout({
                   loadingText="Saliendo…"
                   className="shrink-0 text-sm"
                 >
-                  Cerrar sesión
+                  <span className="sm:hidden">Salir</span>
+                  <span className="hidden sm:inline">Cerrar sesión</span>
                 </Button>
               </div>
             </div>

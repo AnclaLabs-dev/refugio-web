@@ -11,10 +11,14 @@ import {
   updateProfile,
   signOut,
   onAuthStateChanged,
+  signInWithPopup,
+  linkWithCredential,
+  GoogleAuthProvider,
   type User as FirebaseUser,
+  type AuthCredential,
 } from "firebase/auth";
 import { apiFetch } from "../services/api";
-import { auth } from "../services/firebase";
+import { auth, googleProvider } from "../services/firebase";
 import type { AuthContextType, UserProfile } from "../types/auth";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,16 +28,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Estados para vinculación de cuentas cuando ya existe el correo (Account Linking)
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [pendingGoogleCredential, setPendingGoogleCredential] = useState<AuthCredential | null>(null);
+
   useEffect(() => {
     // onAuthStateChanged se suscribe a los cambios de estado en Firebase
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setFirebaseUser(currentUser);
+        // Fallback inicial mientras consultamos PostgreSQL
         setUser({
           uid: currentUser.uid,
           email: currentUser.email,
           displayName: currentUser.displayName,
         });
+
+        // Consultamos PostgreSQL (la fuente de verdad de la base de datos)
+        try {
+          const token = await currentUser.getIdToken();
+          const res = await apiFetch<{ user: { name: string | null } }>("/auth/sync", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ name: currentUser.displayName || "" }),
+          });
+
+          // Si el usuario tiene nombre en PostgreSQL, prevalece siempre como fuente de verdad
+          if (res.user?.name) {
+            setUser({
+              uid: currentUser.uid,
+              email: currentUser.email,
+              displayName: res.user.name,
+            });
+          }
+        } catch (apiError) {
+          console.warn("Advertencia al sincronizar perfil con PostgreSQL:", apiError);
+        }
       } else {
         setFirebaseUser(null);
         setUser(null);
@@ -45,6 +77,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
+  const syncUserWithBackend = async (fUser: FirebaseUser, overrideName?: string) => {
+    try {
+      const token = await fUser.getIdToken();
+      const res = await apiFetch<{ user: { name: string | null } }>("/auth/sync", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name: overrideName ?? fUser.displayName ?? "" }),
+      });
+
+      // El nombre guardado en PostgreSQL es la fuente de verdad definitiva
+      const authoritativeName = res.user?.name || overrideName || fUser.displayName;
+      setUser({
+        uid: fUser.uid,
+        email: fUser.email,
+        displayName: authoritativeName,
+      });
+    } catch (apiError) {
+      console.warn("Advertencia al sincronizar con backend:", apiError);
+    }
+  };
+
   const register = async (email: string, pass: string, name: string) => {
     // 1. Crear usuario en Firebase Auth
     const cred = await createUserWithEmailAndPassword(auth, email, pass);
@@ -52,20 +107,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // 2. Asignar el nombre en el perfil de Firebase
     await updateProfile(cred.user, { displayName: name });
 
-    // 3. Sincronizar con el Backend de Railway (crea usuario en Postgres, wallet y saldo ARS)
-    try {
-      const token = await cred.user.getIdToken();
-      await apiFetch("/auth/sync", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ name }),
-      });
-    } catch (apiError) {
-      console.error("Error al sincronizar usuario con backend:", apiError);
-      // No frenamos el flujo si el backend ya lo registró
-    }
+    // 3. Sincronizar con el Backend de Railway (crea usuario en Postgres, wallet y saldos)
+    await syncUserWithBackend(cred.user, name);
 
     // 4. Cerramos sesión por seguridad (solicitud de Caro) para que ingrese desde login
     await signOut(auth);
@@ -75,24 +118,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, pass: string) => {
     const cred = await signInWithEmailAndPassword(auth, email, pass);
+    await syncUserWithBackend(cred.user);
+  };
 
-    // Sincronizamos también al iniciar sesión para asegurar consistencia
+  const loginWithGoogle = async () => {
     try {
-      const token = await cred.user.getIdToken();
-      await apiFetch("/auth/sync", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ name: cred.user.displayName || "" }),
-      });
-    } catch (apiError) {
-      console.warn("Advertencia al sincronizar en login:", apiError);
+      const cred = await signInWithPopup(auth, googleProvider);
+      await syncUserWithBackend(cred.user);
+    } catch (error: unknown) {
+      const fbError = error as { code?: string; customData?: { email?: string } };
+      if (fbError?.code === "auth/account-exists-with-different-credential") {
+        const pendingCred = GoogleAuthProvider.credentialFromError(error as Parameters<typeof GoogleAuthProvider.credentialFromError>[0]);
+        const email = fbError.customData?.email || null;
+        setPendingGoogleCredential(pendingCred);
+        setPendingEmail(email);
+      }
+      throw error;
     }
+  };
+
+  const linkPendingGoogleAccount = async (password: string) => {
+    if (!pendingGoogleCredential || !pendingEmail) {
+      throw new Error("No hay credenciales pendientes para vincular.");
+    }
+    const userCred = await signInWithEmailAndPassword(auth, pendingEmail, password);
+    await linkWithCredential(userCred.user, pendingGoogleCredential);
+    setPendingGoogleCredential(null);
+    setPendingEmail(null);
+    await syncUserWithBackend(userCred.user);
+  };
+
+  const clearPendingGoogleLinking = () => {
+    setPendingGoogleCredential(null);
+    setPendingEmail(null);
   };
 
   const logout = async () => {
     await signOut(auth);
+  };
+
+  const updateProfileName = async (name: string) => {
+    if (auth.currentUser) {
+      await updateProfile(auth.currentUser, { displayName: name });
+    }
+    setUser((prev) => (prev ? { ...prev, displayName: name } : null));
   };
 
   return (
@@ -102,8 +171,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         firebaseUser,
         loading,
         login,
+        loginWithGoogle,
         register,
         logout,
+        updateProfileName,
+        pendingEmail,
+        pendingGoogleCredential,
+        linkPendingGoogleAccount,
+        clearPendingGoogleLinking,
       }}
     >
       {children}
