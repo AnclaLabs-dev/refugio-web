@@ -7,9 +7,11 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test:email": "node --experimental-strip-types test-email-local.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@aws-sdk/client-ses": "^3.1178.0",
     "@tailwindcss/vite": "^4.3.5",
     "firebase": "^13.4.0",
     "react": "^19.3.1",
