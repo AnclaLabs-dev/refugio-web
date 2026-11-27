@@ -34,14 +34,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // onAuthStateChanged se suscribe a los cambios de estado en Firebase
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setFirebaseUser(currentUser);
+        // Fallback inicial mientras consultamos PostgreSQL
         setUser({
           uid: currentUser.uid,
           email: currentUser.email,
           displayName: currentUser.displayName,
         });
+
+        // Consultamos PostgreSQL (la fuente de verdad de la base de datos)
+        try {
+          const token = await currentUser.getIdToken();
+          const res = await apiFetch<{ user: { name: string | null } }>("/auth/sync", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ name: currentUser.displayName || "" }),
+          });
+
+          // Si el usuario tiene nombre en PostgreSQL, prevalece siempre como fuente de verdad
+          if (res.user?.name) {
+            setUser({
+              uid: currentUser.uid,
+              email: currentUser.email,
+              displayName: res.user.name,
+            });
+          }
+        } catch (apiError) {
+          console.warn("Advertencia al sincronizar perfil con PostgreSQL:", apiError);
+        }
       } else {
         setFirebaseUser(null);
         setUser(null);
@@ -56,12 +80,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const syncUserWithBackend = async (fUser: FirebaseUser, overrideName?: string) => {
     try {
       const token = await fUser.getIdToken();
-      await apiFetch("/auth/sync", {
+      const res = await apiFetch<{ user: { name: string | null } }>("/auth/sync", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ name: overrideName ?? fUser.displayName ?? "" }),
+      });
+
+      // El nombre guardado en PostgreSQL es la fuente de verdad definitiva
+      const authoritativeName = res.user?.name || overrideName || fUser.displayName;
+      setUser({
+        uid: fUser.uid,
+        email: fUser.email,
+        displayName: authoritativeName,
       });
     } catch (apiError) {
       console.warn("Advertencia al sincronizar con backend:", apiError);
